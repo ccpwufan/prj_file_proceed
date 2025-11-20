@@ -1,0 +1,10 @@
+# ...existing code...
+ai_code_assistant.txt
+project_status.md
+db.sqlite3
+__pycache__/
+*.pyc
+media/
+.env
+.vscode/    
+*.log
