@@ -1,0 +1,44 @@
+{% extends 'file_processor/base.html' %}
+
+{% block title %}Upload PDF - File Processor{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <div class="bg-white shadow-lg rounded-lg overflow-hidden">
+        <div class="px-6 py-4 bg-blue-50 border-b border-blue-200">
+            <h2 class="text-xl font-semibold text-blue-900">Upload PDF File</h2>
+            <p class="text-blue-700 text-sm mt-1">Convert your PDF to high-quality PNG images</p>
+        </div>
+        
+        <div class="p-6">
+            <form method="post" enctype="multipart/form-data" class="space-y-6">
+                {% csrf_token %}
+                
+                <div>
+                    <label for="{{ form.pdf_file.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                        Select PDF File
+                    </label>
+                    {{ form.pdf_file }}
+                    {% if form.pdf_file.errors %}
+                        <div class="mt-2 text-red-600 text-sm">
+                            {% for error in form.pdf_file.errors %}
+                                <p>{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                    <p class="mt-2 text-sm text-gray-500">Maximum file size: 50MB</p>
+                </div>
+                
+                <div class="flex justify-end space-x-3">
+                    <a href="{% url 'home' %}" class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50">
+                        Cancel
+                    </a>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        Upload and Convert
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,110 @@
+{% extends 'file_processor/base.html' %}
+
+{% block title %}{{ conversion }} - File Processor{% endblock %}
+
+{% block content %}
+{% if conversion.status == 'processing' %}
+<script>
+    // Auto-refresh page every 5 seconds if conversion is still processing
+    setTimeout(function() {
+        location.reload();
+    }, 5000);
+</script>
+{% endif %}
+<div class="max-w-6xl mx-auto">
+    <div class="mb-6">
+        <nav class="flex" aria-label="Breadcrumb">
+            <ol class="flex items-center space-x-4">
+                <li><a href="{% url 'home' %}" class="text-gray-400 hover:text-gray-500">Home</a></li>
+                <li><a href="{% url 'conversion_list' %}" class="text-gray-400 hover:text-gray-500">My Conversions</a></li>
+                <li class="text-gray-500">{{ conversion }}</li>
+            </ol>
+        </nav>
+    </div>
+
+    <div class="bg-white shadow-lg rounded-lg overflow-hidden mb-6">
+        <div class="px-6 py-4 bg-gray-50 border-b">
+            <h1 class="text-xl font-semibold text-gray-900">{{ conversion }}</h1>
+        </div>
+        <div class="p-6">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Status</dt>
+                    <dd class="mt-1">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                            {% if conversion.status == 'completed' %}bg-green-100 text-green-800
+                            {% elif conversion.status == 'failed' %}bg-red-100 text-red-800
+                            {% elif conversion.status == 'processing' %}bg-yellow-100 text-yellow-800
+                            {% else %}bg-gray-100 text-gray-800{% endif %}">
+                            {{ conversion.get_status_display }}
+                        </span>
+                    </dd>
+                </div>
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Total Pages</dt>
+                    <dd class="mt-1 text-sm text-gray-900">{{ conversion.total_pages }}</dd>
+                </div>
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Created</dt>
+                    <dd class="mt-1 text-sm text-gray-900">{{ conversion.created_at|date:"M d, Y H:i" }}</dd>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if conversion.status == 'completed' %}
+        <div class="bg-white shadow-lg rounded-lg overflow-hidden">
+            <div class="px-6 py-4 bg-gray-50 border-b">
+                <h2 class="text-lg font-medium text-gray-900">Generated Images</h2>
+            </div>
+            <div class="p-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {% for image in images %}
+                    <div class="bg-gray-50 rounded-lg overflow-hidden">
+                        <div class="aspect-w-3 aspect-h-4">
+                            <img src="{{ image.image_file.url }}" alt="Page {{ image.page_number }}" class="w-full h-64 object-contain bg-white">
+                        </div>
+                        <div class="p-4">
+                            <h3 class="text-sm font-medium text-gray-900">Page {{ image.page_number }}</h3>
+                            <div class="mt-2 flex space-x-2">
+                                <a href="{{ image.image_file.url }}" target="_blank" class="text-blue-600 hover:text-blue-500 text-sm">View</a>
+                                <a href="{{ image.image_file.url }}" download class="text-green-600 hover:text-green-500 text-sm">Download</a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    {% elif conversion.status == 'processing' %}
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <svg class="h-5 w-5 text-blue-400 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                </div>
+                <div class="ml-3">
+                    <h3 class="text-sm font-medium text-blue-800">Processing...</h3>
+                    <p class="text-sm text-blue-700">Your PDF is being converted to images. The page will refresh automatically.</p>
+                </div>
+            </div>
+        </div>
+    {% elif conversion.status == 'failed' %}
+        <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <svg class="h-5 w-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                    </svg>
+                </div>
+                <div class="ml-3">
+                    <h3 class="text-sm font-medium text-red-800">Conversion Failed</h3>
+                    <p class="text-sm text-red-700">There was an error converting your PDF. Please try uploading again.</p>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

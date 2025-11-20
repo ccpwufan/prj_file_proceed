@@ -1,0 +1,53 @@
+{% extends 'file_processor/base.html' %}
+
+{% block title %}My Conversions - File Processor{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-2xl font-bold text-gray-900">My PDF Conversions</h1>
+        <a href="{% url 'upload_pdf' %}" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium">
+            Upload New PDF
+        </a>
+    </div>
+
+    {% if conversions %}
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {% for conversion in conversions %}
+            <div class="bg-white overflow-hidden shadow-lg rounded-lg hover:shadow-xl transition-shadow duration-300">
+                <div class="p-6">
+                    <h3 class="text-lg font-medium text-gray-900 mb-2">{{ conversion }}</h3>
+                    <div class="flex items-center mb-2">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                            {% if conversion.status == 'completed' %}bg-green-100 text-green-800
+                            {% elif conversion.status == 'failed' %}bg-red-100 text-red-800
+                            {% elif conversion.status == 'processing' %}bg-yellow-100 text-yellow-800
+                            {% else %}bg-gray-100 text-gray-800{% endif %}">
+                            {{ conversion.get_status_display }}
+                        </span>
+                    </div>
+                    <p class="text-sm text-gray-600 mb-2">Pages: {{ conversion.total_pages }}</p>
+                    <p class="text-sm text-gray-500 mb-4">{{ conversion.created_at|date:"M d, Y H:i" }}</p>
+                    <a href="{% url 'conversion_detail' conversion.pk %}" class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200">
+                        View Details
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="text-center py-12">
+            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <h3 class="mt-2 text-sm font-medium text-gray-900">No PDF conversions</h3>
+            <p class="mt-1 text-sm text-gray-500">Get started by uploading your first PDF file.</p>
+            <div class="mt-6">
+                <a href="{% url 'upload_pdf' %}" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
+                    Upload PDF
+                </a>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
