@@ -1,0 +1,4 @@
+# Ignore all files in media (images, pdfs, etc)
+*
+# But keep this .gitignore file
+!.gitignore
