@@ -1,37 +1,27 @@
 from django.contrib import admin
-from .models import PDFConversion, ConvertedImage, ImageAnalysis, AnalysisResult
+from .models import FileHeader, FileDetail, ImageAnalysis, AnalysisResult
 
-class ConvertedImageInline(admin.TabularInline):
-    model = ConvertedImage
-    extra = 0
-    readonly_fields = ('page_number', 'image_file', 'created_at')
+@admin.register(FileHeader)
+class FileHeaderAdmin(admin.ModelAdmin):
+    list_display = ('file_header_filename', 'user', 'created_at', 'total_pages', 'status')
+    list_filter = ('created_at', 'status', 'user')
+    search_fields = ('file_header_filename', 'user__username')
 
-class AnalysisResultInline(admin.TabularInline):
-    model = AnalysisResult
-    extra = 0
-    readonly_fields = ('image', 'result_data', 'created_at')
-
-@admin.register(PDFConversion)
-class PDFConversionAdmin(admin.ModelAdmin):
-    list_display = ('__str__', 'user', 'status', 'total_pages', 'created_at')
-    list_filter = ('status', 'created_at', 'user')
-    readonly_fields = ('total_pages', 'status', 'created_at')
-    inlines = [ConvertedImageInline]
-
-@admin.register(ConvertedImage)
-class ConvertedImageAdmin(admin.ModelAdmin):
-    list_display = ('__str__', 'page_number', 'created_at')
-    list_filter = ('created_at', 'pdf_conversion__user')
+@admin.register(FileDetail)
+class FileDetailAdmin(admin.ModelAdmin):
+    list_display = ('file_detail_filename', 'file_header', 'page_number', 'created_at')
+    list_filter = ('created_at', 'file_header__user')
+    search_fields = ('file_detail_filename', 'file_header__file_header_filename')
 
 @admin.register(ImageAnalysis)
 class ImageAnalysisAdmin(admin.ModelAdmin):
-    list_display = ('__str__', 'user', 'status', 'created_at')
-    list_filter = ('status', 'created_at', 'user')
-    readonly_fields = ('status', 'created_at')
-    inlines = [AnalysisResultInline]
+    list_display = ('user', 'created_at', 'status')
+    list_filter = ('created_at', 'status', 'user')
+    search_fields = ('user__username',)
+    filter_horizontal = ('images',)
 
 @admin.register(AnalysisResult)
 class AnalysisResultAdmin(admin.ModelAdmin):
-    list_display = ('__str__', 'analysis', 'created_at')
+    list_display = ('analysis', 'image', 'created_at')
     list_filter = ('created_at', 'analysis__user')
-    readonly_fields = ('result_data', 'created_at')
+    search_fields = ('analysis__user__username', 'image__file_header__file_header_filename')

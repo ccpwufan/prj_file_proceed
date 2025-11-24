@@ -1,0 +1,30 @@
+{% extends 'file_processor/base.html' %}
+
+{% block title %}{{ conversion }} - File Processor{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    {% if conversion.status == 'processing' %}
+    <script>
+        // Auto-refresh page every 5 seconds if conversion is still processing
+        setTimeout(function() {
+            location.reload();
+        }, 5000);
+    </script>
+    {% endif %}
+    
+    <div class="mb-4">
+        <nav class="flex" aria-label="Breadcrumb">
+            <ol class="flex items-center space-x-2">
+                <li><a href="{% url 'home' %}" class="text-gray-400 hover:text-gray-500">Home</a></li>
+                <li><a href="{% url 'file_list' %}" class="text-gray-400 hover:text-gray-500">My Files</a></li>
+                <li class="text-gray-500">{{ conversion }}</li>
+            </ol>
+        </nav>
+    </div>
+    
+    <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+        {% include 'file_processor/file_detail_partial.html' %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,409 @@
+<div class="space-y-6">
+    <div class="flex items-center justify-between">
+        <h2 class="text-xl font-semibold text-gray-900">{{ conversion }}</h2>
+        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if conversion.status == 'completed' %}bg-green-100 text-green-800
+                    {% elif conversion.status == 'failed' %}bg-red-100 text-red-800
+                    {% elif conversion.status == 'processing' %}bg-yellow-100 text-yellow-800
+                    {% else %}bg-gray-100 text-gray-800{% endif %}">
+            {{ conversion.get_status_display }}
+        </span>
+    </div>
+    
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div>
+            <dt class="text-sm font-medium text-gray-500">Total Pages</dt>
+            <dd class="mt-1 text-sm text-gray-900">{{ conversion.total_pages }}</dd>
+        </div>
+        <div>
+            <dt class="text-sm font-medium text-gray-500">Created At</dt>
+            <dd class="mt-1 text-sm text-gray-900">{{ conversion.created_at|date:"M d, Y H:i" }}</dd>
+        </div>
+        <div>
+            <dt class="text-sm font-medium text-gray-500">Created By</dt>
+            <dd class="mt-1 text-sm text-gray-900">{{ conversion.user.username }}</dd>
+        </div>
+        {% if conversion.processor %}
+        <div>
+            <dt class="text-sm font-medium text-gray-500">Processor</dt>
+            <dd class="mt-1 text-sm text-gray-900">{{ conversion.processor }}</dd>
+        </div>
+        {% endif %}
+        {% if conversion.comments %}
+        <div class="sm:col-span-2">
+            <dt class="text-sm font-medium text-gray-500">Comments</dt>
+            <dd class="mt-1 text-sm text-gray-900">{{ conversion.comments }}</dd>
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- 显示原始文件 -->
+    <div class="border-t border-gray-200 pt-4">
+        <h3 class="text-lg font-medium text-gray-900">Original File</h3>
+        <div class="mt-2">
+            <a href="{{ conversion.file_header_filename.url }}" target="_blank" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                <svg class="h-5 w-5 text-gray-500 mr-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd" />
+                </svg>
+                {{ conversion.file_header_filename.name|truncatechars:50 }}
+            </a>
+        </div>
+    </div>
+    
+    {% if conversion.status == 'completed' %}
+    <div class="border-t border-gray-200 pt-4">
+     
+        <!-- 将按钮移到表格上方靠右位置 -->
+        <div class="flex justify-end mb-2">
+            <button id="call-ai-button" onclick="handleCallAI()" class="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                Call AI Analysis
+            </button>
+        </div>
+        <div class="mt-4 overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <input type="checkbox" id="select-all-checkbox" class="h-4 w-4 text-indigo-600 rounded">
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Thumbnail</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Page Number</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created At</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for image in images %}
+                    <tr data-image-id="{{ image.id }}">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <input type="checkbox" class="image-checkbox h-4 w-4 text-indigo-600 rounded" data-image-id="{{ image.id }}">
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex-shrink-0 h-16 w-16">
+                                <img src="{{ image.file_detail_filename.url }}" alt="Page {{ image.page_number }}" class="h-16 w-16 object-contain rounded cursor-pointer" onclick="openImageModal('{{ image.file_detail_filename.url }}', 'Page {{ image.page_number }}')">
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {{ image.page_number }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {{ image.created_at|date:"M d, Y H:i" }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="image-status inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
+                                {% if image.status == 'completed' %}bg-green-100 text-green-800
+                                {% elif image.status == 'failed' %}bg-red-100 text-red-800
+                                {% elif image.status == 'processing' %}bg-yellow-100 text-yellow-800
+                                {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                {{ image.get_status_display }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            {% if image.result_data %}
+                            <button onclick="showResultData({{ image.id }}, '{{ image.result_data|escapejs }}')" class="text-green-600 hover:text-green-900 result-data-icon" title="View Result Data">
+                                <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                                </svg>
+                            </button>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% elif conversion.status == 'processing' %}
+    <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-yellow-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                </svg>
+            </div>
+            <div class="ml-3">
+                <p class="text-sm text-yellow-700">
+                    <strong>Processing in progress</strong> - Conversion is currently in progress.
+                </p>
+            </div>
+        </div>
+    </div>
+    {% elif conversion.status == 'failed' %}
+    <div class="bg-red-50 border-l-4 border-red-400 p-4">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clip-rule="evenodd" />
+                </svg>
+            </div>
+            <div class="ml-3">
+                <p class="text-sm text-red-700">
+                    <strong>Conversion failed</strong> - There was an error during the PDF conversion process.
+                </p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- 图片预览模态框 -->
+<div id="imageModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
+    <div class="flex items-center justify-center min-h-screen">
+        <!-- 背景遮罩 -->
+        <div class="fixed inset-0 bg-black bg-opacity-75" onclick="closeImageModal()"></div>
+        
+        <!-- 模态框内容 -->
+        <div class="relative bg-white rounded-lg max-w-4xl max-h-full mx-4 overflow-hidden">
+            <div class="absolute top-0 right-0 p-4">
+                <button onclick="closeImageModal()" class="text-gray-500 hover:text-gray-700">
+                    <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <div class="p-4">
+                <h3 id="modalImageTitle" class="text-lg font-medium text-gray-900 mb-2"></h3>
+                <img id="modalImage" src="" alt="" class="max-w-full max-h-[80vh] mx-auto">
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- AI分析结果模态框 -->
+<div id="resultDataModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
+    <div class="flex items-center justify-center min-h-screen">
+        <!-- 背景遮罩 -->
+        <div class="fixed inset-0 bg-black bg-opacity-75" onclick="closeResultDataModal()"></div>
+        
+        <!-- 模态框内容 -->
+        <div class="relative bg-white rounded-lg max-w-4xl max-h-full mx-4 overflow-hidden">
+            <div class="absolute top-0 right-0 p-4">
+                <button onclick="closeResultDataModal()" class="text-gray-500 hover:text-gray-700">
+                    <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <div class="p-4">
+                <h3 class="text-lg font-medium text-gray-900 mb-2">AI Analysis Result</h3>
+                <pre id="resultDataContent" class="bg-gray-100 p-4 rounded overflow-auto max-h-96 text-sm"></pre>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function openImageModal(imageUrl, title) {
+    document.getElementById('modalImage').src = imageUrl;
+    document.getElementById('modalImage').alt = title;
+    document.getElementById('modalImageTitle').textContent = title;
+    document.getElementById('imageModal').classList.remove('hidden');
+    document.body.classList.add('overflow-hidden');
+}
+
+function closeImageModal() {
+    document.getElementById('imageModal').classList.add('hidden');
+    document.body.classList.remove('overflow-hidden');
+}
+
+// 关闭AI分析结果模态框
+function closeResultDataModal() {
+    document.getElementById('resultDataModal').classList.add('hidden');
+    document.body.classList.remove('overflow-hidden');
+}
+
+// 显示图像全尺寸（已删除，不再使用）
+
+// 显示AI分析结果数据
+function showResultData(imageId, resultData) {
+    let parsedData;
+    try {
+        if (typeof resultData === 'string') {
+            // 处理HTML实体编码，如&quot;等
+            let decodedResultData = resultData
+                .replace(/&quot;/g, '"')
+                .replace(/&#x27;/g, "'")
+                .replace(/&lt;/g, '<')
+                .replace(/&gt;/g, '>')
+                .replace(/&amp;/g, '&');
+            parsedData = JSON.parse(decodedResultData);
+        } else {
+            parsedData = resultData;
+        }
+    } catch (e) {
+        console.error('Error parsing result data:', e);
+        parsedData = resultData;
+    }
+    
+    // 将数据显示在固定模态框中
+    document.getElementById('resultDataContent').textContent = JSON.stringify(parsedData, null, 2);
+    document.getElementById('resultDataModal').classList.remove('hidden');
+    document.body.classList.add('overflow-hidden');
+}
+
+// 添加键盘事件监听器，允许使用ESC键关闭模态框
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        closeResultDataModal();
+    }
+});
+
+// 添加Call AI处理函数
+function handleCallAI() {
+    const selectedCheckboxes = document.querySelectorAll('.image-checkbox:checked');
+    if (selectedCheckboxes.length === 0) {
+        alert('Please select at least one image.');
+        return;
+    }
+
+    const callAiButton = document.getElementById('call-ai-button');
+    // 禁用按钮并显示处理状态
+    callAiButton.disabled = true;
+    callAiButton.textContent = 'Processing...';
+
+    // 逐个处理选中的图像
+    processImagesSequentially(Array.from(selectedCheckboxes));
+}
+
+// 允许按 ESC 键关闭模态框
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        closeImageModal();
+    }
+});
+
+// 逐个处理图像
+async function processImagesSequentially(checkboxes) {
+    const callAiButton = document.getElementById('call-ai-button');
+    
+    for (let i = 0; i < checkboxes.length; i++) {
+        const checkbox = checkboxes[i];
+        const imageId = checkbox.getAttribute('data-image-id');
+        
+        // 更新状态为处理中
+        updateImageStatus(imageId, 'processing');
+        
+        try {
+            // 发送AJAX请求进行AI分析
+            const response = await fetch('/file/analyze-image/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({
+                    image_id: imageId
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok) {
+                // 更新状态和结果数据
+                updateImageStatus(imageId, 'completed');
+                if (data.result_data) {
+                    updateResultData(imageId, data.result_data);
+                }
+            } else {
+                // 更新状态为失败
+                updateImageStatus(imageId, 'failed');
+            }
+        } catch (error) {
+            console.error('Error analyzing image:', error);
+            updateImageStatus(imageId, 'failed');
+        }
+    }
+    
+    // 恢复按钮状态
+    callAiButton.disabled = false;
+    callAiButton.textContent = 'Call AI Analysis';
+}
+
+// 更新图像状态
+function updateImageStatus(imageId, status) {
+    const statusElement = document.querySelector(`tr[data-image-id="${imageId}"] .image-status`);
+    if (statusElement) {
+        // 清除所有可能的类
+        statusElement.className = 'image-status inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium';
+        
+        // 根据状态添加相应的类
+        if (status === 'completed') {
+            statusElement.classList.add('bg-green-100', 'text-green-800');
+            statusElement.textContent = 'Completed';
+        } else if (status === 'failed') {
+            statusElement.classList.add('bg-red-100', 'text-red-800');
+            statusElement.textContent = 'Failed';
+        } else if (status === 'processing') {
+            statusElement.classList.add('bg-yellow-100', 'text-yellow-800');
+            statusElement.textContent = 'Processing';
+        } else {
+            statusElement.classList.add('bg-gray-100', 'text-gray-800');
+            statusElement.textContent = 'Pending';
+        }
+    }
+}
+
+// 更新结果数据并添加查看按钮
+function updateResultData(imageId, resultData) {
+    const actionsCell = document.querySelector(`tr[data-image-id="${imageId}"] td:last-child`);
+    if (actionsCell) {
+        // 检查是否已存在结果按钮
+        const existingButton = actionsCell.querySelector('.result-data-icon[data-image-id="' + imageId + '"]');
+        if (!existingButton && resultData) {
+            // 添加结果数据查看按钮
+            const button = document.createElement('button');
+            button.className = 'text-green-600 hover:text-green-900 result-data-icon';
+            button.title = 'View Result Data';
+            button.setAttribute('data-image-id', imageId);
+            button.innerHTML = `
+                <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                </svg>
+            `;
+            
+            // 转义resultData中的特殊字符
+            const escapedResultData = JSON.stringify(resultData).replace(/'/g, "\\'").replace(/"/g, '&quot;');
+            button.setAttribute('onclick', `showResultData(${imageId}, '${escapedResultData}')`);
+            
+            actionsCell.innerHTML = ''; // 清空单元格
+            actionsCell.appendChild(button);
+        }
+    }
+}
+
+// 显示结果数据
+function showResultData(imageId, resultData) {
+    let parsedData;
+    try {
+        if (typeof resultData === 'string') {
+            parsedData = JSON.parse(resultData);
+        } else {
+            parsedData = resultData;
+        }
+    } catch (e) {
+        console.error('Error parsing result data:', e);
+        parsedData = resultData;
+    }
+    
+    // 将数据显示在固定模态框中
+    document.getElementById('resultDataContent').textContent = JSON.stringify(parsedData, null, 2);
+    document.getElementById('resultDataModal').classList.remove('hidden');
+    document.body.classList.add('overflow-hidden');
+}
+
+// 获取CSRF token
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>

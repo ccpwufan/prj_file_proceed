@@ -3,9 +3,10 @@ from django.contrib.auth.models import User
 import os
 import json
 
-class PDFConversion(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='pdf_conversions', default=1)
-    pdf_file = models.FileField(upload_to='pdfs/', help_text='Upload PDF file')
+class FileHeader(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='file_headers', default=1)
+    file_header_filename = models.FileField(upload_to='pdfs/', help_text='Upload PDF file')
+    file_type = models.CharField(max_length=10, blank=True, null=True, help_text='File extension')
     created_at = models.DateTimeField(auto_now_add=True)
     total_pages = models.IntegerField(default=0)
     processor = models.CharField(max_length=50, blank=True, null=True, help_text='Selected processor for the conversion')
@@ -18,26 +19,33 @@ class PDFConversion(models.Model):
     ])
     
     def __str__(self):
-        return f"PDF: {os.path.basename(self.pdf_file.name)}"
+        return f"PDF: {os.path.basename(self.file_header_filename.name)}"
     
     class Meta:
         ordering = ['-created_at']
 
-class ConvertedImage(models.Model):
-    pdf_conversion = models.ForeignKey(PDFConversion, on_delete=models.CASCADE, related_name='images')
-    image_file = models.ImageField(upload_to='images/')
+class FileDetail(models.Model):
+    file_header = models.ForeignKey(FileHeader, on_delete=models.CASCADE, related_name='images')
+    file_detail_filename = models.ImageField(upload_to='images/')
     page_number = models.IntegerField()
     created_at = models.DateTimeField(auto_now_add=True)
+    result_data = models.JSONField(default=dict, blank=True, help_text='AI analysis result data')
+    status = models.CharField(max_length=20, default='pending', choices=[
+        ('pending', 'Pending'),
+        ('processing', 'Processing'),
+        ('completed', 'Completed'),
+        ('failed', 'Failed'),
+    ])
     
     def __str__(self):
-        return f"Page {self.page_number} of {self.pdf_conversion}"
+        return f"Page {self.page_number} of {self.file_header}"
     
     class Meta:
         ordering = ['page_number']
 
 class ImageAnalysis(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='image_analyses', default=1)
-    images = models.ManyToManyField(ConvertedImage, related_name='analyses')
+    images = models.ManyToManyField(FileDetail, related_name='analyses')
     created_at = models.DateTimeField(auto_now_add=True)
     status = models.CharField(max_length=20, default='pending', choices=[
         ('pending', 'Pending'),
@@ -54,7 +62,7 @@ class ImageAnalysis(models.Model):
 
 class AnalysisResult(models.Model):
     analysis = models.ForeignKey(ImageAnalysis, on_delete=models.CASCADE, related_name='results')
-    image = models.ForeignKey(ConvertedImage, on_delete=models.CASCADE)
+    image = models.ForeignKey(FileDetail, on_delete=models.CASCADE)
     result_data = models.JSONField(default=dict, help_text='Dify API response data')
     created_at = models.DateTimeField(auto_now_add=True)
     

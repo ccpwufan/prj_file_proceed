@@ -10,10 +10,12 @@ urlpatterns = [
     path('auth/logout/', auth_views.LogoutView.as_view(next_page='/auth/login/'), name='logout'),
     path('auth/register/', views.register, name='register'),
     
-    # PDF Conversion URLs
-    path('pdf/upload/', views.upload_pdf, name='upload_pdf'),
-    path('pdf/list/', views.conversion_list, name='conversion_list'),
-    path('pdf/detail/<int:pk>/', views.conversion_detail, name='conversion_detail'),
+    # File Processing URLs
+    path('file/upload/', views.upload_file, name='upload_file'),
+    path('file/list/', views.file_list, name='file_list'),
+    path('file/detail/<int:pk>/', views.file_detail, name='file_detail'),
+    path('file/detail-partial/<int:pk>/', views.file_detail_partial, name='file_detail_partial'),
+    path('file/analyze-image/', views.analyze_image, name='analyze_image'),
     
     # Image Analysis URLs
     path('analysis/', views.image_analysis, name='image_analysis'),

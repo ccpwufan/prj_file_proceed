@@ -1,13 +1,13 @@
 {% extends 'file_processor/base.html' %}
 
-{% block title %}Upload PDF - File Processor{% endblock %}
+{% block title %}Upload File- File Processor{% endblock %}
 
 {% block content %}
 <div class="max-w-2xl mx-auto">
     <div class="bg-white shadow-lg rounded-lg overflow-hidden">
         <div class="px-6 py-4 bg-blue-50 border-b border-blue-200">
-            <h2 class="text-xl font-semibold text-blue-900">Upload PDF File</h2>
-            <p class="text-blue-700 text-sm mt-1">Convert your PDF to high-quality PNG images</p>
+            <h2 class="text-xl font-semibold text-blue-900">Upload File</h2>
+            <p class="text-blue-700 text-sm mt-1">Welcome to AI File Processer</p>
         </div>
         
         <div class="p-6">
@@ -15,13 +15,13 @@
                 {% csrf_token %}
                 
                 <div>
-                    <label for="{{ form.pdf_file.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                        Select PDF File
+                    <label for="{{ form.file_header_filename.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                        Select File
                     </label>
-                    {{ form.pdf_file }}
-                    {% if form.pdf_file.errors %}
+                    {{ form.file_header_filename }}
+                    {% if form.file_header_filename.errors %}
                         <div class="mt-2 text-red-600 text-sm">
-                            {% for error in form.pdf_file.errors %}
+                            {% for error in form.file_header_filename.errors %}
                                 <p>{{ error }}</p>
                             {% endfor %}
                         </div>

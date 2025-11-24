@@ -4,11 +4,11 @@
 <div class="px-4 py-6 sm:px-0">
     <div class="text-center">
         <h1 class="text-4xl font-bold text-gray-900 mb-8">File Processor Platform</h1>
-        <p class="text-xl text-gray-600 mb-12">Convert PDFs to images and analyze them with AI</p>
+        <p class="text-xl text-gray-600 mb-12">Analyze Business Files with AI</p>
         
         {% if user.is_authenticated %}
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-                <!-- PDF Converter Card -->
+                <!-- Upload Files Card -->
                 <div class="bg-white overflow-hidden shadow-lg rounded-lg hover:shadow-xl transition-shadow duration-300">
                     <div class="px-6 py-8">
                         <div class="flex items-center justify-center w-16 h-16 bg-blue-100 rounded-lg mx-auto mb-4">
@@ -16,10 +16,10 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                             </svg>
                         </div>
-                        <h3 class="text-xl font-semibold text-gray-900 mb-2">PDF to Image Converter</h3>
-                        <p class="text-gray-600 mb-6">Upload PDF files and convert them to high-quality PNG images</p>
-                        <a href="{% url 'upload_pdf' %}" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                            Start Converting
+                        <h3 class="text-xl font-semibold text-gray-900 mb-2">Upload Files</h3>
+                        <p class="text-gray-600 mb-6">Upload files and ready for AI Analysis</p>
+                        <a href="{% url 'upload_file' %}" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                            New Upload
                         </a>
                     </div>
                 </div>

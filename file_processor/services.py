@@ -105,3 +105,20 @@ class DifyAPIService:
             analysis.status = 'failed'
             analysis.save()
             print(f"Analysis failed: {str(e)}")
+    
+    def analyze_single_image(self, image):
+        """Analyze a single image and return result data"""
+        try:
+            # Upload image to Dify
+            file_id = self.upload_image(image.file_detail_filename.path)
+            
+            # Run workflow
+            success, result_data, error_msg = self.run_workflow(file_id)
+            
+            if success:
+                return result_data
+            else:
+                return {"error": error_msg}
+                
+        except Exception as e:
+            return {"error": str(e)}

@@ -26,7 +26,7 @@
                                 <label class="cursor-pointer block">
                                     <input type="checkbox" name="selected_images" value="{{ image.id }}" class="sr-only peer">
                                     <div class="border-2 border-gray-200 rounded-lg overflow-hidden peer-checked:border-blue-500 peer-checked:ring-2 peer-checked:ring-blue-200 transition-all">
-                                        <img src="{{ image.image_file.url }}" alt="Page {{ image.page_number }}" class="w-full h-32 object-contain bg-gray-50">
+                                        <img src="{{ image.file_detail_filename.url }}" alt="Page {{ image.page_number }}" class="w-full h-32 object-contain bg-gray-50">
                                         <div class="p-2 bg-white">
                                             <p class="text-xs text-gray-600">{{ image }}</p>
                                             <p class="text-xs text-gray-500">{{ image.created_at|date:"M d, H:i" }}</p>
@@ -68,7 +68,7 @@
                             <h3 class="mt-2 text-sm font-medium text-gray-900">No images available</h3>
                             <p class="mt-1 text-sm text-gray-500">Upload and convert some PDF files first to get images for analysis.</p>
                             <div class="mt-6">
-                                <a href="{% url 'upload_pdf' %}" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
+                                <a href="{% url 'upload_file' %}" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
                                     Upload PDF
                                 </a>
                             </div>

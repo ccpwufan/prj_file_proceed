@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
-from .models import PDFConversion, ConvertedImage
+from .models import FileHeader, FileDetail
 
 class PDFUploadForm(forms.ModelForm):
     processor = forms.ChoiceField(
@@ -13,10 +13,10 @@ class PDFUploadForm(forms.ModelForm):
     )
     
     class Meta:
-        model = PDFConversion
-        fields = ['pdf_file', 'processor', 'comments']
+        model = FileHeader
+        fields = ['file_header_filename', 'processor', 'comments']
         widgets = {
-            'pdf_file': forms.FileInput(attrs={
+            'file_header_filename': forms.FileInput(attrs={
                 'accept': '.pdf',
                 'class': 'block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100'
             }),
@@ -31,14 +31,14 @@ class PDFUploadForm(forms.ModelForm):
         super(PDFUploadForm, self).__init__(*args, **kwargs)
         self.fields['comments'].required = False
     
-    def clean_pdf_file(self):
-        pdf_file = self.cleaned_data.get('pdf_file')
-        if pdf_file:
-            if not pdf_file.name.lower().endswith('.pdf'):
+    def clean_file_header_filename(self):
+        file_header_filename = self.cleaned_data.get('file_header_filename')
+        if file_header_filename:
+            if not file_header_filename.name.lower().endswith('.pdf'):
                 raise forms.ValidationError('Only PDF files are allowed.')
-            if pdf_file.size > 50 * 1024 * 1024:  # 50MB limit
+            if file_header_filename.size > 50 * 1024 * 1024:  # 50MB limit
                 raise forms.ValidationError('File size must be less than 50MB.')
-        return pdf_file
+        return file_header_filename
 
 class CustomUserCreationForm(UserCreationForm):
     email = forms.EmailField(required=True)
@@ -59,9 +59,9 @@ class ImageSelectionForm(forms.Form):
         super().__init__(*args, **kwargs)
         # Get user's images, newest first
         if user.is_superuser:
-            images = ConvertedImage.objects.all().order_by('-created_at')
+            images = FileDetail.objects.all().order_by('-created_at')
         else:
-            images = ConvertedImage.objects.filter(pdf_conversion__user=user).order_by('-created_at')
+            images = FileDetail.objects.filter(file_header__user=user).order_by('-created_at')
         
         self.fields['selected_images'] = forms.ModelMultipleChoiceField(
             queryset=images,
