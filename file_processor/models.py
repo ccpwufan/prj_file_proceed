@@ -8,6 +8,8 @@ class PDFConversion(models.Model):
     pdf_file = models.FileField(upload_to='pdfs/', help_text='Upload PDF file')
     created_at = models.DateTimeField(auto_now_add=True)
     total_pages = models.IntegerField(default=0)
+    processor = models.CharField(max_length=50, blank=True, null=True, help_text='Selected processor for the conversion')
+    comments = models.CharField(max_length=100, blank=True, null=True, help_text='User comments about the conversion')
     status = models.CharField(max_length=20, default='pending', choices=[
         ('pending', 'Pending'),
         ('processing', 'Processing'),
