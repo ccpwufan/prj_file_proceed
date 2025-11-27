@@ -10,36 +10,41 @@
         </span>
     </div>
     
-    <div class="grid grid-cols-1 gap-4 sm:grid-cols-5">
-        <!--
-        <div>
-            <dt class="text-sm font-medium text-gray-500">Total Pages</dt>
-            <dd class="mt-1 text-sm text-gray-900">{{ conversion.total_pages }}</dd>
-        </div>
-        <div>
-            <dt class="text-sm font-medium text-gray-500">Created At</dt>
-            <dd class="mt-1 text-sm text-gray-900">{{ conversion.created_at|date:"M d, Y H:i" }}</dd>
-        </div>
-        <div>
-            <dt class="text-sm font-medium text-gray-500">Created By</dt>
-            <dd class="mt-1 text-sm text-gray-900">{{ conversion.user.username }}</dd>
-        </div>
-
-        <div>
-            <dt class="text-sm font-medium text-gray-500">Processor</dt>
-            <dd class="mt-1 text-sm text-gray-900">{{ conversion.processor }}</dd>
-        </div>
--->
-        <div">
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div class="sm:col-span-1">
             <dt class="text-sm font-medium text-gray-500">Comments</dt>
             <dd class="mt-1 text-sm text-gray-900">{{ conversion.comments }}</dd>
         </div>
-
+         <div class="sm:col-span-1">
+            <dt class="text-sm font-medium text-gray-500">Result</dt>
+            <dd class="mt-1 text-sm text-gray-900">
+                    {% if conversion.result_data %}
+                    <a href="{% url 'result_detail' conversion.id %}" target="_blank" class="inline-flex p-2 text-gray-600 hover:text-gray-900 transition-colors">
+                        <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                    </a>
+                    {% endif %}                
+            </dd>
+        </div>       
+        <div class="sm:col-span-1">
+            <dt class="text-sm font-medium text-gray-500"></dt>
+            <dd class="mt-1 text-right">
+                <div class="flex space-x-2 justify-end">
+                    <button id="analyze-all-btn" onclick="analyzeAllFiles({{ conversion.id }})" class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md shadow-sm text-white bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        <svg class="-ml-0.5 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.994l-3.5-3.5a1 1 0 00-1.414 0l-3.5 3.5a1 1 0 001.414 1.414L9 9.414V13a1 1 0 102 0V9.414l1.293 1.293a1 1 0 001.414-1.414z" clip-rule="evenodd" />
+                        </svg>
+                        Analyze All Files
+                    </button>
+                </div>
+            </dd>
+        </div>
     </div>
     
 
     
-    {% if conversion.status == 'completed' or conversion.status == 'converted' %}
+    {% if conversion.status == 'completed' or conversion.status == 'converted' or conversion.status == 'failed'%}
     <div class="border-t border-gray-200 pt-4">
         <div class="flex justify-between items-center">
             <h3 class="text-lg font-medium text-gray-900">Converted Images</h3>
@@ -110,29 +115,15 @@
             </div>
         </div>
     </div>
-    {% elif conversion.status == 'failed' %}
-    <div class="bg-red-50 border-l-4 border-red-400 p-4">
-        <div class="flex">
-            <div class="flex-shrink-0">
-                <svg class="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clip-rule="evenodd" />
-                </svg>
-            </div>
-            <div class="ml-3">
-                <p class="text-sm text-red-700">
-                    <strong>Conversion failed</strong> - There was an error during the PDF conversion process.
-                </p>
-            </div>
-        </div>
-    </div>
+
     {% endif %}
 </div>
 
 <!-- 图片预览模态框 -->
 <div id="imageModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
     <div class="flex items-center justify-center min-h-screen">
-        <!-- 背景遮罩 -->
-        <div class="fixed inset-0 bg-black bg-opacity-75" onclick="closeImageModal()"></div>
+        <!-- 背景遮罩 - 改为淡颜色 -->
+        <div class="fixed inset-0 bg-gray-500 bg-opacity-50" onclick="closeImageModal()"></div>
         
         <!-- 模态框内容 -->
         <div class="relative bg-white rounded-lg max-w-4xl max-h-full mx-4 overflow-hidden">
@@ -154,8 +145,8 @@
 <!-- AI分析结果模态框 -->
 <div id="resultDataModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
     <div class="flex items-center justify-center min-h-screen">
-        <!-- 背景遮罩 -->
-        <div class="fixed inset-0 bg-black bg-opacity-75" onclick="closeResultDataModal()"></div>
+        <!-- 背景遮罩 - 改为淡颜色 -->
+        <div class="fixed inset-0 bg-gray-500 bg-opacity-50" onclick="closeResultDataModal()"></div>
         
         <!-- 模态框内容 -->
         <div class="relative bg-white rounded-lg max-w-6xl w-full mx-4 overflow-hidden" style="max-height: 80vh;">
@@ -174,7 +165,52 @@
     </div>
 </div>
 
+<!-- 日志显示模态框 -->
+<div id="logModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
+    <div class="flex items-center justify-center min-h-screen">
+        <!-- 背景遮罩 - 改为淡颜色 -->
+        <div class="fixed inset-0 bg-gray-500 bg-opacity-50" onclick="closeLogModal()"></div>
+        
+        <!-- 模态框内容 -->
+        <div class="relative bg-white rounded-lg max-w-4xl w-full mx-4 overflow-hidden" style="max-height: 80vh;">
+            <div class="absolute top-0 right-0 p-4">
+                <button onclick="closeLogModal()" class="text-gray-500 hover:text-gray-700">
+                    <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <!-- 右下角worker.png图片 -->
+            <div class="absolute bottom-10 right-10">
+                
+                    <img src="/media/worker.png" alt="Worker" class="w-[300px] h-[300px] object-contain">
+                
+            </div>
+            <div class="p-6 h-full">
+                <h3 class="text-xl font-medium text-gray-900 mb-4">Analysis Progress Log</h3>
+                <div class="mb-4 flex items-center">
+                    <div id="logStatus" class="text-sm text-gray-600 mr-4">Status: Processing...</div>
+                    <div id="logSpinner" class="animate-spin rounded-full h-4 w-4 border-b-2 border-indigo-600"></div>
+                </div>
+                <pre id="logContent" class="bg-black text-green-400 p-4 rounded overflow-auto font-mono text-sm" style="height: calc(80vh - 200px);"></pre>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
+// Format date as YYYY-MM-DD H24:MI:SS
+function formatDateTime(date) {
+    const d = new Date(date);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const hours = String(d.getHours()).padStart(2, '0');
+    const minutes = String(d.getMinutes()).padStart(2, '0');
+    const seconds = String(d.getSeconds()).padStart(2, '0');
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+}
+
 function openImageModal(imageUrl, title) {
     document.getElementById('modalImage').src = imageUrl;
     document.getElementById('modalImage').alt = title;
@@ -185,6 +221,64 @@ function openImageModal(imageUrl, title) {
 
 function closeImageModal() {
     document.getElementById('imageModal').classList.add('hidden');
+    document.body.classList.remove('overflow-hidden');
+}
+
+function showHeaderResultData(resultData) {
+    document.getElementById('resultDataContent').textContent = resultData;
+    document.getElementById('resultDataModal').classList.remove('hidden');
+    document.body.classList.add('overflow-hidden');
+}
+
+function openLogModal() {
+    document.getElementById('logModal').classList.remove('hidden');
+    document.body.classList.add('overflow-hidden');
+}
+
+function closeLogModal() {
+    document.getElementById('logModal').classList.add('hidden');
+    document.body.classList.remove('overflow-hidden');
+}
+
+function updateLogContent(logContent) {
+    document.getElementById('logContent').textContent = logContent;
+    // Auto-scroll to bottom
+    const logElement = document.getElementById('logContent');
+    logElement.scrollTop = logElement.scrollHeight;
+}
+
+function pollLog(fileHeaderId, intervalId) {
+    fetch(`/file/get-log/${fileHeaderId}/`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.log) {
+                updateLogContent(data.log);
+            }
+            
+            // Check if analysis is complete
+            if (data.status === 'completed' || data.status === 'failed') {
+                clearInterval(intervalId);
+                document.getElementById('logStatus').textContent = `Status: ${data.status}`;
+                document.getElementById('logSpinner').classList.add('hidden');
+                
+                // Add final log message
+                const finalMessage = data.status === 'completed' ? 
+                    'Analysis completed successfully! You can now close this window.' : 
+                    'Analysis failed. Please check the error messages above.';
+                updateLogContent(document.getElementById('logContent').textContent + `\n[${formatDateTime(new Date())}] ${finalMessage}`);
+                
+                // Note: Modal will not auto-close, user needs to close it manually
+            }
+        })
+        .catch(error => {
+            console.error('Error polling log:', error);
+            // Show error in log
+            updateLogContent(document.getElementById('logContent').textContent + `\n[${formatDateTime(new Date())}] Error polling log: ${error.message}`);
+        });
+}
+
+function closeResultDataModal() {
+    document.getElementById('resultDataModal').classList.add('hidden');
     document.body.classList.remove('overflow-hidden');
 }
 
@@ -450,6 +544,155 @@ function getCookie(name) {
         }
     }
     return cookieValue;
+}
+
+// 分析所有文件
+function analyzeAllFiles(fileHeaderId) {
+    const button = document.getElementById('analyze-all-btn');
+    const originalText = button.innerHTML;
+    
+    // 显示加载状态
+    button.disabled = true;
+    button.innerHTML = `
+        <svg class="animate-spin -ml-0.5 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        Analyzing...
+    `;
+    
+    // 打开日志模态框
+    openLogModal();
+    document.getElementById('logStatus').textContent = 'Status: Starting analysis...';
+    document.getElementById('logContent').textContent = '';
+    document.getElementById('logSpinner').classList.remove('hidden');
+    
+    // 发送分析请求
+    fetch(`/file/analyze-all/${fileHeaderId}/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({})
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            // 显示成功消息在日志中
+            updateLogContent(document.getElementById('logContent').textContent + `\n[${formatDateTime(new Date())}] Analysis request submitted successfully`);
+        } else {
+            // 显示错误消息
+            updateLogContent(document.getElementById('logContent').textContent + `\n[${formatDateTime(new Date())}] Error: ${data.error || 'Analysis failed'}`);
+            document.getElementById('logStatus').textContent = 'Status: Analysis failed';
+            document.getElementById('logSpinner').classList.add('hidden');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        updateLogContent(document.getElementById('logContent').textContent + `\n[${formatDateTime(new Date())}] Network error: ${error.message}`);
+        document.getElementById('logStatus').textContent = 'Status: Analysis failed';
+        document.getElementById('logSpinner').classList.add('hidden');
+    })
+    .finally(() => {
+        // 恢复按钮状态
+        button.disabled = false;
+        button.innerHTML = originalText;
+    });
+    
+    // 开始轮询日志 - 延迟2秒开始轮询，给服务器时间处理
+    setTimeout(() => {
+        const intervalId = setInterval(() => {
+            pollLog(fileHeaderId, intervalId);
+        }, 3000); // 每3秒轮询一次
+        
+        // 立即执行一次轮询
+        pollLog(fileHeaderId, intervalId);
+    }, 2000);
+}
+
+// 更新头部状态显示
+function updateHeaderStatus(status) {
+    const statusElement = document.querySelector('.inline-flex.items-center.px-2\\.5.py-0\\.5.rounded-full.text-xs.font-medium');
+    if (statusElement) {
+        // 清除所有状态类
+        statusElement.className = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium';
+        
+        // 根据状态添加相应的类和文本
+        if (status === 'completed') {
+            statusElement.classList.add('bg-green-100', 'text-green-800');
+            statusElement.textContent = 'Completed';
+        } else if (status === 'failed') {
+            statusElement.classList.add('bg-red-100', 'text-red-800');
+            statusElement.textContent = 'Failed';
+        } else if (status === 'processing') {
+            statusElement.classList.add('bg-yellow-100', 'text-yellow-800');
+            statusElement.textContent = 'Processing';
+        } else {
+            statusElement.classList.add('bg-gray-100', 'text-gray-800');
+            statusElement.textContent = status;
+        }
+    }
+}
+
+// 显示通知消息
+function showNotification(message, type = 'info') {
+    // 创建通知元素
+    const notification = document.createElement('div');
+    notification.className = `fixed top-4 right-4 z-50 p-4 rounded-md shadow-lg transition-all duration-300 transform translate-x-full`;
+    
+    // 根据类型设置样式
+    if (type === 'success') {
+        notification.classList.add('bg-green-50', 'text-green-800', 'border', 'border-green-200');
+    } else if (type === 'error') {
+        notification.classList.add('bg-red-50', 'text-red-800', 'border', 'border-red-200');
+    } else {
+        notification.classList.add('bg-blue-50', 'text-blue-800', 'border', 'border-blue-200');
+    }
+    
+    notification.innerHTML = `
+        <div class="flex">
+            <div class="flex-shrink-0">
+                ${type === 'success' ? 
+                    '<svg class="h-5 w-5 text-green-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>' :
+                    type === 'error' ?
+                    '<svg class="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" /></svg>' :
+                    '<svg class="h-5 w-5 text-blue-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" /></svg>'
+                }
+            </div>
+            <div class="ml-3">
+                <p class="text-sm font-medium">${message}</p>
+            </div>
+            <div class="ml-auto pl-3">
+                <div class="-mx-1.5 -my-1.5">
+                    <button onclick="this.parentElement.parentElement.parentElement.remove()" class="inline-flex rounded-md p-1.5 focus:outline-none focus:ring-2 focus:ring-offset-2 ${type === 'success' ? 'focus:ring-green-500 text-green-500 hover:bg-green-100' : type === 'error' ? 'focus:ring-red-500 text-red-500 hover:bg-red-100' : 'focus:ring-blue-500 text-blue-500 hover:bg-blue-100'}">
+                        <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // 添加到页面
+    document.body.appendChild(notification);
+    
+    // 显示动画
+    setTimeout(() => {
+        notification.classList.remove('translate-x-full');
+        notification.classList.add('translate-x-0');
+    }, 100);
+    
+    // 自动隐藏
+    setTimeout(() => {
+        notification.classList.add('translate-x-full');
+        setTimeout(() => {
+            if (notification.parentElement) {
+                notification.remove();
+            }
+        }, 300);
+    }, 5000);
 }
 
 // 添加浮动按钮的处理函数

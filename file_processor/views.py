@@ -14,6 +14,17 @@ import os
 from django.conf import settings
 import threading
 from django.core.paginator import Paginator
+from datetime import datetime
+
+def append_log(file_header, message):
+    """Append timestamped message to file_header log field"""
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    log_entry = f"[{timestamp}] {message}\n"
+
+    # Get current log or start with empty string
+    current_log = file_header.log or ""
+    file_header.log = current_log + log_entry
+    file_header.save()
 
 def home(request):
     return render(request, 'file_processor/home.html')
@@ -196,6 +207,102 @@ def analyze_image(request):
     return JsonResponse({'error': 'Invalid request'}, status=400)
 
 @login_required
+def analyze_all_files(request, pk):
+    """分析当前file_header的所有文件"""
+    if request.method == 'POST' and request.headers.get('Content-Type') == 'application/json':
+        try:
+            import json
+            data = json.loads(request.body)
+            
+            # 获取file_header对象
+            file_header = get_object_or_404(FileHeader, pk=pk)
+            
+            # 检查权限
+            if not request.user.is_superuser and file_header.user != request.user:
+                return JsonResponse({'error': 'Permission denied'}, status=403)
+            
+            # 获取所有相关的图片
+            images = file_header.images.all()
+            
+            if not images.exists():
+                return JsonResponse({'error': 'No images found for this file'}, status=400)
+            
+            # Set status to processing and clear existing log
+            file_header.status = 'processing'
+            file_header.log = ""
+            file_header.save()
+            append_log(file_header, f"Starting analysis for {len(images)} images")
+            
+            # 初始化DifyAPIService，使用指定的API KEY
+            append_log(file_header, "Initializing Dify API service")
+            dify_service = DifyAPIService(api_key=settings.DIFY_API_KEY_INVICE_FILES)
+            
+            # 上传所有图片并收集file_ids
+            append_log(file_header, "Starting image upload process")
+            file_ids = []
+            for i, image in enumerate(images, 1):
+                try:
+                    file_id = dify_service.upload_image(image.file_detail_filename.path)
+                    file_ids.append(file_id)
+                    append_log(file_header, f"Uploaded image {i}/{len(images)}: Page {image.page_number}")
+                except Exception as e:
+                    append_log(file_header, f"Failed to upload image {i}/{len(images)}: Page {image.page_number} - {str(e)}")
+                    raise
+            
+            append_log(file_header, f"All images uploaded successfully. Starting workflow analysis")
+            
+            # 调用run_workflow_files方法
+            success, result_data, error_msg = dify_service.run_workflow_files(file_ids)
+            
+            if success:
+                # 更新file_header状态为completed，并保存result_data
+                append_log(file_header, "Workflow analysis completed successfully")
+                file_header.status = 'completed'
+                # 将result_data转换为字符串存储
+                file_header.result_data = str(datetime.now().strftime("%Y-%m-%d %H:%M:%S")+": " + result_data)
+                file_header.save()
+                
+                return JsonResponse({
+                    'status': 'success',
+                    'message': f'Successfully analyzed {len(images)} images',
+                    'result_data': result_data
+                })
+            else:
+                # 更新file_header状态为failed，并保存错误信息
+                append_log(file_header, f"Workflow analysis failed: {error_msg}")
+                file_header.status = 'failed'
+                file_header.result_data = datetime.now().strftime("%Y-%m-%d %H:%M:%S")+": " + f"Error: {error_msg}"
+                file_header.save()
+                
+                return JsonResponse({'error': error_msg}, status=500)
+                
+        except Exception as e:
+            append_log(file_header if 'file_header' in locals() else get_object_or_404(FileHeader, pk=pk), f"Analysis failed with exception: {str(e)}")
+            return JsonResponse({'error': str(e)}, status=500)
+    
+    return JsonResponse({'error': 'Invalid request'}, status=400)
+
+@login_required
+def get_log(request, pk):
+    """获取file_header的日志信息"""
+    try:
+        # 获取file_header对象
+        file_header = get_object_or_404(FileHeader, pk=pk)
+        
+        # 检查权限
+        if not request.user.is_superuser and file_header.user != request.user:
+            return JsonResponse({'error': 'Permission denied'}, status=403)
+        
+        # 返回日志和状态
+        return JsonResponse({
+            'log': file_header.log or '',
+            'status': file_header.status
+        })
+        
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+@login_required
 def delete_file(request, pk):
     """删除文件及其相关数据"""
     if request.method == 'POST':
@@ -272,3 +379,42 @@ def convert_pdf_to_images(pdf_conversion):
         pdf_conversion.status = 'failed'
         pdf_conversion.save()
         print(f"Conversion failed: {str(e)}")
+
+@login_required
+def result_detail(request, pk):
+    """Display result data with tabs for Result and Think sections"""
+    file_header = get_object_or_404(FileHeader, pk=pk)
+    
+    # Check permission
+    if not request.user.is_superuser and file_header.user != request.user:
+        return redirect('login')
+    
+    result_data = file_header.result_data or ''
+    
+    # Debug: Print result_data info
+    print(f"Result data length: {len(result_data)}")
+    print(f"Has </think> tags: {'</think>' in result_data}")
+    
+    # Parse result_data to separate Think section
+    think_content = ''
+    result_content = result_data
+    
+    if '<think>' in result_data and '</think>' in result_data:
+        # Extract content between <think> tags
+        start_idx = result_data.find('<think>') + len('<think>')
+        end_idx = result_data.find('</think>', start_idx)
+        think_content = result_data[start_idx:end_idx].strip()
+        
+        # Remove think section from result content
+        result_content = result_data[:result_data.find('<think>')].strip()
+        if result_data.find('</think>') + len('</think>') < len(result_data):
+            result_content += result_data[result_data.find('</think>') + len('</think>'):].strip()
+    
+    context = {
+        'file_header': file_header,
+        'result_content': result_content,
+        'think_content': think_content,
+        'log_content': file_header.log or '',
+    }
+    
+    return render(request, 'file_processor/result_detail.html', context)

@@ -3,7 +3,7 @@
 {% block title %}{{ conversion }} - File Processor{% endblock %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+<div class="w-full">
     {% if conversion.status == 'processing' %}
     <script>
         // Auto-refresh page every 5 seconds if conversion is still processing
@@ -23,7 +23,7 @@
         </nav>
     </div>
     
-    <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+    <div class="bg-white shadow overflow-hidden">
         {% include 'file_processor/file_detail_partial.html' %}
     </div>
 </div>

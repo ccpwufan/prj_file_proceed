@@ -1,0 +1,232 @@
+{% load markdown_filters %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Result Detail - {{ file_header.file_header_filename }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50">
+    <div class="min-h-screen">
+        <!-- Header -->
+        <header class="bg-white shadow-sm border-b">
+            <div class="w-full px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between items-center h-16">
+                    <div class="flex items-center">
+                        <h1 class="text-xl font-semibold text-gray-900">Result Analysis</h1>
+                        <span class="ml-3 text-sm text-gray-500">{{ file_header.file_header_filename.name }}</span>
+                    </div>
+                    <button onclick="window.close()" class="text-gray-500 hover:text-gray-700">
+                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="w-full px-4 sm:px-6 lg:px-8 py-8">
+            <!-- Tabs -->
+            <div class="border-b border-gray-200">
+                <nav class="-mb-px flex space-x-8">
+                    <button onclick="switchTab('result')" id="result-tab" class="tab-button py-2 px-1 border-b-2 border-indigo-500 font-medium text-sm text-indigo-600">
+                        Result
+                    </button>
+                    {% if think_content %}
+                    <button onclick="switchTab('think')" id="think-tab" class="tab-button py-2 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                        Think
+                    </button>
+                    {% endif %}
+                    <button onclick="switchTab('log')" id="log-tab" class="tab-button py-2 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                        Log
+                    </button>
+                </nav>
+            </div>
+
+            <!-- Tab Content -->
+            <div class="mt-6">
+                <!-- Result Tab -->
+                <div id="result-content" class="tab-content">
+                    <div class="bg-white rounded-lg shadow-sm p-6">
+                        <div class="prose prose-sm max-w-none w-full">
+                            <div class="markdown-content">
+                                {{ result_content|markdown|safe }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Think Tab -->
+                {% if think_content %}
+                <div id="think-content" class="tab-content hidden">
+                    <div class="bg-white rounded-lg shadow-sm p-6">
+                        <div class="prose prose-sm max-w-none w-full">
+                            <div class="markdown-content">
+                                {{ think_content|markdown|safe }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Log Tab -->
+                <div id="log-content" class="tab-content hidden">
+                    <div class="bg-white rounded-lg shadow-sm p-6">
+                        <div class="mb-4">
+                            <h3 class="text-lg font-medium text-gray-900 mb-2">Analysis Progress Log</h3>
+                            <p class="text-sm text-gray-600">Detailed log of the analysis process</p>
+                        </div>
+                        {% if log_content %}
+                            <pre class="bg-gray-900 text-green-400 p-4 rounded overflow-auto font-mono text-sm whitespace-pre-wrap" style="max-height: 500px;">{{ log_content }}</pre>
+                        {% else %}
+                            <div class="text-gray-500 text-center py-8">
+                                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                                <p class="mt-2">No log entries found</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        function switchTab(tabName) {
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.add('hidden');
+            });
+
+            // Remove active styling from all tabs
+            document.querySelectorAll('.tab-button').forEach(button => {
+                button.classList.remove('border-indigo-500', 'text-indigo-600');
+                button.classList.add('border-transparent', 'text-gray-500');
+            });
+
+            // Show selected tab content
+            document.getElementById(tabName + '-content').classList.remove('hidden');
+
+            // Add active styling to selected tab
+            const activeTab = document.getElementById(tabName + '-tab');
+            activeTab.classList.remove('border-transparent', 'text-gray-500');
+            activeTab.classList.add('border-indigo-500', 'text-indigo-600');
+        }
+    </script>
+
+    <style>
+        body, html {
+            width: 100%;
+            margin: 0;
+            padding: 0;
+        }
+        
+        .min-h-screen {
+            width: 100%;
+        }
+        
+        .markdown-content {
+            line-height: 1.6;
+            width: 100%;
+        }
+        
+        .markdown-content h1 {
+            font-size: 1.5em;
+            font-weight: 600;
+            margin-top: 1em;
+            margin-bottom: 0.5em;
+            border-bottom: 2px solid #e5e7eb;
+            padding-bottom: 0.3em;
+        }
+        
+        .markdown-content h2 {
+            font-size: 1.3em;
+            font-weight: 600;
+            margin-top: 1em;
+            margin-bottom: 0.5em;
+            border-bottom: 1px solid #e5e7eb;
+            padding-bottom: 0.2em;
+        }
+        
+        .markdown-content h3 {
+            font-size: 1.1em;
+            font-weight: 600;
+            margin-top: 0.8em;
+            margin-bottom: 0.4em;
+        }
+        
+        .markdown-content p {
+            margin-bottom: 0.8em;
+        }
+        
+        .markdown-content ul, .markdown-content ol {
+            margin-left: 1.5em;
+            margin-bottom: 0.8em;
+        }
+        
+        .markdown-content li {
+            margin-bottom: 0.3em;
+        }
+        
+        .markdown-content code {
+            background-color: #f3f4f6;
+            padding: 0.2em 0.4em;
+            border-radius: 0.25rem;
+            font-size: 0.875em;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .markdown-content pre {
+            background-color: #f3f4f6;
+            padding: 1em;
+            border-radius: 0.375rem;
+            overflow-x: auto;
+            margin-bottom: 0.8em;
+        }
+        
+        .markdown-content pre code {
+            background-color: transparent;
+            padding: 0;
+        }
+        
+        .markdown-content blockquote {
+            border-left: 4px solid #e5e7eb;
+            padding-left: 1em;
+            margin-left: 0;
+            margin-bottom: 0.8em;
+            font-style: italic;
+            color: #6b7280;
+        }
+        
+        .markdown-content table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-bottom: 0.8em;
+        }
+        
+        /* 确保所有容器都占满宽度 */
+        .tab-content {
+            width: 100%;
+        }
+        
+        .prose {
+            width: 100% !important;
+            max-width: none !important;
+        }
+        
+        .markdown-content th, .markdown-content td {
+            border: 1px solid #e5e7eb;
+            padding: 0.5em;
+            text-align: left;
+        }
+        
+        .markdown-content th {
+            background-color: #f9fafb;
+            font-weight: 600;
+        }
+    </style>
+</body>
+</html>

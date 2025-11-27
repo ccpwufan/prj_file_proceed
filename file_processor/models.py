@@ -11,6 +11,8 @@ class FileHeader(models.Model):
     total_pages = models.IntegerField(default=0)
     processor = models.CharField(max_length=50, blank=True, null=True, help_text='Selected processor for the conversion')
     comments = models.CharField(max_length=100, blank=True, null=True, help_text='User comments about the conversion')
+    result_data = models.TextField(blank=True, null=True, help_text='Dify API analysis result data')
+    log = models.TextField(blank=True, null=True, help_text='Processing log with timestamps and progress information')
     status = models.CharField(max_length=20, default='pending', choices=[
         ('pending', 'Pending'),
         ('processing', 'Processing'),

@@ -4,8 +4,8 @@ from django.conf import settings
 from .models import ImageAnalysis, AnalysisResult
 
 class DifyAPIService:
-    def __init__(self):
-        self.api_key = settings.DIFY_API_KEY
+    def __init__(self, api_key=None):
+        self.api_key = api_key if api_key is not None else settings.DIFY_API_KEY
         self.user = settings.DIFY_USER
         self.server = settings.DIFY_SERVER
         # 从环境变量读取超时设置，默认为60秒
@@ -43,6 +43,45 @@ class DifyAPIService:
                     "transfer_method": "local_file",
                     "upload_file_id": file_id
                 }
+            },
+            "user": self.user,
+            "response_mode": "blocking"
+        }
+        
+        response = requests.post(url, headers=headers, json=data, timeout=self.timeout)
+        
+        if response.status_code == 200:
+            resp_json = response.json()
+            wf_status = resp_json.get("data", {}).get("status")
+            if wf_status == "succeeded":
+                outputs = resp_json.get("data", {}).get("outputs", {})
+                return True, outputs.get("result", {}), ""
+            else:
+                error_info = resp_json.get("data", {}).get("error") or resp_json.get("message")
+                return False, {}, error_info
+        else:
+            return False, {}, f"Workflow failed: {response.status_code}"
+    
+    def run_workflow_files(self, file_ids):
+        """Run Dify workflow with multiple files and return analysis result"""
+        url = f"{self.server}/v1/workflows/run"
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json"
+        }
+        
+        # 构建文件列表，符合Dify workflow的file-list类型要求
+        files_list = []
+        for file_id in file_ids:
+            files_list.append({
+                "type": "image",
+                "transfer_method": "local_file",
+                "upload_file_id": file_id
+            })
+        
+        data = {
+            "inputs": {
+                "upload": files_list
             },
             "user": self.user,
             "response_mode": "blocking"

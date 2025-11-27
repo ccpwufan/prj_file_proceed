@@ -101,47 +101,67 @@ def test_multiple_image_upload():
     try:
         service = DifyAPIService(DIFY_API_KEY)
         
-        image_paths = [img.file_detail_filename.path for img in images]
-        print(f"Testing upload of {len(image_paths)} images")
+        print(f"Testing upload of {len(images)} images")
         
-        file_ids = service.upload_multiple_images(image_paths)
+        # Upload each image individually and collect file IDs
+        file_ids = []
+        for img in images:
+            file_id = service.upload_image(img.file_detail_filename.path)
+            file_ids.append(file_id)
+            print(f"✅ Uploaded image {img.id}, file_id: {file_id}")
+        
         print(f"✅ Successfully uploaded {len(file_ids)} images")
         print(f"File IDs: {file_ids}")
         
-        return True
+        return file_ids  # Return file IDs for next test
         
     except Exception as e:
         print(f"❌ Multiple upload failed: {str(e)}")
         return False
 
-def test_multiple_image_analysis():
-    """Test multiple image analysis functionality"""
-    print("\n=== Multiple Image Analysis Test ===")
+
+
+def test_run_workflow_files_function():
+    """Test specifically the new run_workflow_files function"""
+    print("\n=== Run Workflow Files Test ===")
     
     from file_processor.models import FileDetail
     
-    images = FileDetail.objects.all()[:2]
+    images = FileDetail.objects.all()[:3]  # Test with up to 3 images
     
-    if len(images) < 2:
-        print("❌ Need at least 2 images for multiple analysis test")
+    if len(images) < 1:
+        print("❌ Need at least 1 image for workflow files test")
         return False
     
     try:
         service = DifyAPIService(DIFY_API_KEY)
         
-        print(f"Testing analysis of {len(images)} images")
+        # Upload images and collect file IDs
+        file_ids = []
+        for img in images:
+            file_id = service.upload_image(img.file_detail_filename.path)
+            file_ids.append(file_id)
+            print(f"✅ Uploaded image {img.id}, file_id: {file_id}")
         
-        result = service.analyze_multiple_images(images)
+        print(f"Testing run_workflow_files with {len(file_ids)} files")
         
-        if "error" in result:
-            print(f"❌ Analysis failed: {result['error']}")
-            return False
-        else:
-            print("✅ Multiple image analysis completed successfully")
+        # Test the new run_workflow_files method
+        success, result_data, error_msg = service.run_workflow_files(file_ids)
+        
+        if success:
+            print("✅ run_workflow_files test successful")
+            print(f"Analysis result length: {len(str(result_data))} characters")
+            print("Result preview:")
+            print("-" * 50)
+            print(str(result_data)[:500])
+            print("-" * 50)
             return True
+        else:
+            print(f"❌ run_workflow_files test failed: {error_msg}")
+            return False
         
     except Exception as e:
-        print(f"❌ Multiple analysis failed: {str(e)}")
+        print(f"❌ run_workflow_files test error: {str(e)}")
         return False
 
 if __name__ == "__main__":
@@ -150,15 +170,15 @@ if __name__ == "__main__":
     api_ok = test_dify_connection()
     files_ok = test_image_file_access()
     upload_ok = test_multiple_image_upload()
-    analysis_ok = test_multiple_image_analysis()
+    workflow_files_ok = test_run_workflow_files_function()
     
     print(f"\n=== Test Results ===")
     print(f"API Connection: {'✅' if api_ok else '❌'}")
     print(f"File Access: {'✅' if files_ok else '❌'}")
     print(f"Multiple Upload: {'✅' if upload_ok else '❌'}")
-    print(f"Multiple Analysis: {'✅' if analysis_ok else '❌'}")
+    print(f"Run Workflow Files: {'✅' if workflow_files_ok else '❌'}")
     
-    if all([api_ok, files_ok, upload_ok, analysis_ok]):
+    if all([api_ok, files_ok, upload_ok, workflow_files_ok]):
         print("\n🎉 All tests passed! Multi-file Dify API works.")
     else:
         print("\n⚠️  Some tests failed. Check the issues above.")
