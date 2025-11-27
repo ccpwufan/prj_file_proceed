@@ -12,9 +12,13 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 import os
 from pathlib import Path
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Load environment variables from .env file
+load_dotenv(BASE_DIR / '.env')
 
 # 1. 媒体文件存储路径（上传的 PDF + 生成的 PNG 都存在这里）
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')  # 实际路径：项目根目录/media/
@@ -132,9 +136,9 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Dify API Configuration
-DIFY_API_KEY = "app-hHgjeWQQtQ1T03MoTaodXvji"
-DIFY_USER = "seanc"
-DIFY_SERVER = "https://api.dify.ai"
+DIFY_API_KEY = os.getenv("DIFY_API_KEY")
+DIFY_USER = os.getenv("DIFY_USER")
+DIFY_SERVER = os.getenv("DIFY_SERVER")
 
 # Login/Logout redirect URLs
 LOGIN_URL = '/auth/login/'

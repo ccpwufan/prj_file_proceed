@@ -16,6 +16,7 @@ urlpatterns = [
     path('file/detail/<int:pk>/', views.file_detail, name='file_detail'),
     path('file/detail-partial/<int:pk>/', views.file_detail_partial, name='file_detail_partial'),
     path('file/analyze-image/', views.analyze_image, name='analyze_image'),
+    path('file/delete/<int:pk>/', views.delete_file, name='delete_file'),
     
     # Image Analysis URLs
     path('analysis/', views.image_analysis, name='image_analysis'),

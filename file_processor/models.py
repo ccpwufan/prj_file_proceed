@@ -14,6 +14,7 @@ class FileHeader(models.Model):
     status = models.CharField(max_length=20, default='pending', choices=[
         ('pending', 'Pending'),
         ('processing', 'Processing'),
+        ('converted', 'Converted'),
         ('completed', 'Completed'),
         ('failed', 'Failed'),
     ])
@@ -29,10 +30,11 @@ class FileDetail(models.Model):
     file_detail_filename = models.ImageField(upload_to='images/')
     page_number = models.IntegerField()
     created_at = models.DateTimeField(auto_now_add=True)
-    result_data = models.JSONField(default=dict, blank=True, help_text='AI analysis result data')
+    result_data = models.JSONField(default=dict, blank=True, null=True, help_text='AI analysis result data')
     status = models.CharField(max_length=20, default='pending', choices=[
         ('pending', 'Pending'),
         ('processing', 'Processing'),
+        ('converted', 'Converted'),
         ('completed', 'Completed'),
         ('failed', 'Failed'),
     ])
@@ -50,6 +52,7 @@ class ImageAnalysis(models.Model):
     status = models.CharField(max_length=20, default='pending', choices=[
         ('pending', 'Pending'),
         ('processing', 'Processing'),
+        ('converted', 'Converted'),
         ('completed', 'Completed'),
         ('failed', 'Failed'),
     ])

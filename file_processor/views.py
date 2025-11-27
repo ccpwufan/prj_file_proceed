@@ -5,6 +5,7 @@ from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.template.loader import render_to_string
 from django.db import transaction
+from django.utils import timezone
 from .models import FileHeader, FileDetail, ImageAnalysis, AnalysisResult
 from .forms import PDFUploadForm, CustomUserCreationForm, ImageSelectionForm
 from .services import DifyAPIService
@@ -156,8 +157,9 @@ def analyze_image(request):
             if not request.user.is_superuser and image.file_header.user != request.user:
                 return JsonResponse({'error': 'Permission denied'}, status=403)
             
+            # 清除已有的result_data
+            image.result_data = None
             # 更新状态为处理中
-            image.status = 'processing'
             image.save()
             
             # 调用AI服务进行分析
@@ -165,7 +167,10 @@ def analyze_image(request):
             result_data = dify_service.analyze_single_image(image)
             
             # 更新结果数据和状态
-            image.result_data = result_data
+            image.result_data = {
+                'status': 'success',
+                'result_data': result_data
+            }
             image.status = 'completed'
             image.save()
             
@@ -176,9 +181,49 @@ def analyze_image(request):
         except Exception as e:
             # 更新状态为失败
             if 'image' in locals():
+                # 组织错误信息存入result_data
+                error_data = {
+                    'error': str(e),
+                    'status': 'failed',
+                    'timestamp': timezone.now().isoformat()
+                }
+                image.result_data = error_data
                 image.status = 'failed'
                 image.save()
             
+            return JsonResponse({'error': str(e)}, status=500)
+    
+    return JsonResponse({'error': 'Invalid request'}, status=400)
+
+@login_required
+def delete_file(request, pk):
+    """删除文件及其相关数据"""
+    if request.method == 'POST':
+        try:
+            # 获取文件对象
+            file_header = get_object_or_404(FileHeader, pk=pk)
+            
+            # 检查权限
+            if not request.user.is_superuser and file_header.user != request.user:
+                return JsonResponse({'error': 'Permission denied'}, status=403)
+            
+            # 删除相关的图片文件和记录
+            images = FileDetail.objects.filter(file_header=file_header)
+            for image in images:
+                # 删除图片文件
+                if image.file_detail_filename and os.path.exists(image.file_detail_filename.path):
+                    os.remove(image.file_detail_filename.path)
+            
+            # 删除原始PDF文件
+            if file_header.file_header_filename and os.path.exists(file_header.file_header_filename.path):
+                os.remove(file_header.file_header_filename.path)
+            
+            # 删除数据库记录
+            images.delete()  # 删除FileDetail记录
+            file_header.delete()  # 删除FileHeader记录
+            
+            return JsonResponse({'status': 'success'})
+        except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
     
     return JsonResponse({'error': 'Invalid request'}, status=400)
@@ -220,7 +265,7 @@ def convert_pdf_to_images(pdf_conversion):
             )
         
         pdf_document.close()
-        pdf_conversion.status = 'completed'
+        pdf_conversion.status = 'converted'
         pdf_conversion.save()
         
     except Exception as e:

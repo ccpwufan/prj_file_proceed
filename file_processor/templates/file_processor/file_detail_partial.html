@@ -2,6 +2,7 @@
     <div class="flex items-center justify-between">
         <h2 class="text-xl font-semibold text-gray-900">{{ conversion }}</h2>
         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if conversion.status == 'completed' %}bg-green-100 text-green-800
+                    {% elif conversion.status == 'converted' %}bg-blue-100 text-blue-800
                     {% elif conversion.status == 'failed' %}bg-red-100 text-red-800
                     {% elif conversion.status == 'processing' %}bg-yellow-100 text-yellow-800
                     {% else %}bg-gray-100 text-gray-800{% endif %}">
@@ -9,7 +10,8 @@
         </span>
     </div>
     
-    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-5">
+        <!--
         <div>
             <dt class="text-sm font-medium text-gray-500">Total Pages</dt>
             <dd class="mt-1 text-sm text-gray-900">{{ conversion.total_pages }}</dd>
@@ -22,95 +24,75 @@
             <dt class="text-sm font-medium text-gray-500">Created By</dt>
             <dd class="mt-1 text-sm text-gray-900">{{ conversion.user.username }}</dd>
         </div>
-        {% if conversion.processor %}
+
         <div>
             <dt class="text-sm font-medium text-gray-500">Processor</dt>
             <dd class="mt-1 text-sm text-gray-900">{{ conversion.processor }}</dd>
         </div>
-        {% endif %}
-        {% if conversion.comments %}
-        <div class="sm:col-span-2">
+-->
+        <div">
             <dt class="text-sm font-medium text-gray-500">Comments</dt>
             <dd class="mt-1 text-sm text-gray-900">{{ conversion.comments }}</dd>
         </div>
-        {% endif %}
+
     </div>
     
-    <!-- 显示原始文件 -->
-    <div class="border-t border-gray-200 pt-4">
-        <h3 class="text-lg font-medium text-gray-900">Original File</h3>
-        <div class="mt-2">
-            <a href="{{ conversion.file_header_filename.url }}" target="_blank" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-                <svg class="h-5 w-5 text-gray-500 mr-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd" />
-                </svg>
-                {{ conversion.file_header_filename.name|truncatechars:50 }}
-            </a>
-        </div>
-    </div>
+
     
-    {% if conversion.status == 'completed' %}
+    {% if conversion.status == 'completed' or conversion.status == 'converted' %}
     <div class="border-t border-gray-200 pt-4">
-     
-        <!-- 将按钮移到表格上方靠右位置 -->
-        <div class="flex justify-end mb-2">
-            <button id="call-ai-button" onclick="handleCallAI()" class="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                Call AI Analysis
-            </button>
+        <div class="flex justify-between items-center">
+            <h3 class="text-lg font-medium text-gray-900">Converted Images</h3>
+            <div class="flex items-center">
+                <input type="checkbox" id="select-all-checkbox" class="h-4 w-4 text-indigo-600 rounded mr-2">
+                <label for="select-all-checkbox" class="text-sm text-gray-600">Select All</label>
+            </div>
         </div>
-        <div class="mt-4 overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
-                    <tr>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            <input type="checkbox" id="select-all-checkbox" class="h-4 w-4 text-indigo-600 rounded">
-                        </th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Thumbnail</th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Page Number</th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created At</th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                    </tr>
-                </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
-                    {% for image in images %}
-                    <tr data-image-id="{{ image.id }}">
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <input type="checkbox" class="image-checkbox h-4 w-4 text-indigo-600 rounded" data-image-id="{{ image.id }}">
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="flex-shrink-0 h-16 w-16">
-                                <img src="{{ image.file_detail_filename.url }}" alt="Page {{ image.page_number }}" class="h-16 w-16 object-contain rounded cursor-pointer" onclick="openImageModal('{{ image.file_detail_filename.url }}', 'Page {{ image.page_number }}')">
-                            </div>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {{ image.page_number }}
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {{ image.created_at|date:"M d, Y H:i" }}
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <span class="image-status inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
-                                {% if image.status == 'completed' %}bg-green-100 text-green-800
-                                {% elif image.status == 'failed' %}bg-red-100 text-red-800
-                                {% elif image.status == 'processing' %}bg-yellow-100 text-yellow-800
-                                {% else %}bg-gray-100 text-gray-800{% endif %}">
-                                {{ image.get_status_display }}
-                            </span>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+        <div class="mt-4 grid grid-cols-1 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+            {% for image in images %}
+            <div class="bg-white rounded-lg shadow-md overflow-hidden border border-gray-200 hover:shadow-lg transition-all duration-200 cursor-pointer" data-image-id="{{ image.id }}">
+                <div class="p-3">
+                    <!-- 顶部：复选框和状态 -->
+                    <div class="flex justify-between items-start mb-2">
+                        <input type="checkbox" class="image-checkbox h-5 w-5 text-indigo-600 rounded" data-image-id="{{ image.id }}">
+                        <span class="image-status inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium 
+                            {% if image.status == 'completed' %}bg-green-100 text-green-800
+                            {% elif image.status == 'failed' %}bg-red-100 text-red-800
+                            {% elif image.status == 'processing' %}bg-yellow-100 text-yellow-800
+                            {% else %}bg-gray-100 text-gray-800{% endif %}">
+                            {{ image.get_status_display }}
+                        </span>
+                    </div>
+                    
+                    <!-- 缩略图 -->
+                    <div class="flex justify-center mb-2">
+                        <img src="{{ image.file_detail_filename.url }}" alt="Page {{ image.page_number }}" class="h-20 w-20 object-contain rounded cursor-pointer" onclick="openImageModal('{{ image.file_detail_filename.url }}', 'Page {{ image.page_number }}')">
+                    </div>
+                    
+                    <!-- 底部：页码和按钮并排 -->
+                    <div class="flex justify-between items-center">
+                        <div class="text-xs font-medium text-gray-900">
+                            Page {{ image.page_number }}
+                        </div>
+                        
+                        <div class="flex space-x-1">
+                            <button onclick="event.stopPropagation(); openImageModal('{{ image.file_detail_filename.url }}', 'Page {{ image.page_number }}')" class="text-gray-600 hover:text-gray-900" title="Preview Image">
+                                <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" clip-rule="evenodd" />
+                                </svg>
+                            </button>
                             {% if image.result_data %}
-                            <button onclick="showResultData({{ image.id }}, '{{ image.result_data|escapejs }}')" class="text-green-600 hover:text-green-900 result-data-icon" title="View Result Data">
-                                <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                            <button onclick="event.stopPropagation(); showResultData({{ image.id }}, '{{ image.result_data|escapejs }}')" class="text-green-600 hover:text-green-900 result-data-icon" title="View Result Data">
+                                <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                                     <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
                                 </svg>
                             </button>
                             {% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
         </div>
     </div>
     {% elif conversion.status == 'processing' %}
@@ -163,7 +145,7 @@
             </div>
             <div class="p-4">
                 <h3 id="modalImageTitle" class="text-lg font-medium text-gray-900 mb-2"></h3>
-                <img id="modalImage" src="" alt="" class="max-w-full max-h-[80vh] mx-auto">
+                <img id="modalImage" src="" alt="" class="w-full h-auto mx-auto">
             </div>
         </div>
     </div>
@@ -176,7 +158,7 @@
         <div class="fixed inset-0 bg-black bg-opacity-75" onclick="closeResultDataModal()"></div>
         
         <!-- 模态框内容 -->
-        <div class="relative bg-white rounded-lg max-w-4xl max-h-full mx-4 overflow-hidden">
+        <div class="relative bg-white rounded-lg max-w-6xl w-full mx-4 overflow-hidden" style="max-height: 80vh;">
             <div class="absolute top-0 right-0 p-4">
                 <button onclick="closeResultDataModal()" class="text-gray-500 hover:text-gray-700">
                     <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -184,9 +166,9 @@
                     </svg>
                 </button>
             </div>
-            <div class="p-4">
-                <h3 class="text-lg font-medium text-gray-900 mb-2">AI Analysis Result</h3>
-                <pre id="resultDataContent" class="bg-gray-100 p-4 rounded overflow-auto max-h-96 text-sm"></pre>
+            <div class="p-6 h-full">
+                <h3 class="text-xl font-medium text-gray-900 mb-4">AI Analysis Result</h3>
+                <pre id="resultDataContent" class="bg-gray-100 p-4 rounded overflow-auto" style="height: calc(80vh - 150px);"></pre>
             </div>
         </div>
     </div>
@@ -217,21 +199,45 @@ function closeResultDataModal() {
 // 显示AI分析结果数据
 function showResultData(imageId, resultData) {
     let parsedData;
+    
     try {
         if (typeof resultData === 'string') {
             // 处理HTML实体编码，如&quot;等
+            //console.log(resultData);
             let decodedResultData = resultData
-                .replace(/&quot;/g, '"')
-                .replace(/&#x27;/g, "'")
-                .replace(/&lt;/g, '<')
-                .replace(/&gt;/g, '>')
-                .replace(/&amp;/g, '&');
-            parsedData = JSON.parse(decodedResultData);
+            .replace(/&amp;/g, '&')
+            .replace(/&quot;/g, '"')
+            .replace(/&#x27;/g, "'")  // 这里单引号会被还原
+            .replace(/&lt;/g, '<')
+            .replace(/&gt;/g, '>');
+
+            // 1. 先处理 items 里面的双引号（避免被误替换）
+            decodedResultData = decodedResultData.replace(/"/g, '___TEMP_QUOTE___');
+            //console.log(decodedResultData);
+            // 2. 将外层的单引号替换为双引号
+            decodedResultData = decodedResultData.replace(/'/g, '"');
+
+            //console.log(decodedResultData);
+            // 3. 恢复 items 里面的双引号
+            decodedResultData = decodedResultData.replace(/___TEMP_QUOTE___/g, '\\"');
+
+            // 尝试解析JSON，如果失败则使用原始数据
+            //console.log(decodedResultData);
+            try {
+                parsedData = JSON.parse(decodedResultData);
+                //console.log("decodedResultData ok");
+            } catch (parseError) {
+                // 如果解析失败，直接使用解码后的数据
+                //console.log("decodedResultData NG");
+                parsedData = decodedResultData;
+            }
         } else {
+            // 如果已经是对象，则直接使用
             parsedData = resultData;
         }
     } catch (e) {
         console.error('Error parsing result data:', e);
+        // 如果解析失败，直接使用原始数据
         parsedData = resultData;
     }
     
@@ -249,17 +255,27 @@ document.addEventListener('keydown', function(event) {
 });
 
 // 添加Call AI处理函数
-function handleCallAI() {
+function handleAnalyzeSingleFile() {
     const selectedCheckboxes = document.querySelectorAll('.image-checkbox:checked');
     if (selectedCheckboxes.length === 0) {
         alert('Please select at least one image.');
         return;
     }
 
-    const callAiButton = document.getElementById('call-ai-button');
+    // 获取浮动按钮或原来的按钮
+    const callAiButton = document.getElementById('floating-call-ai-button') || document.getElementById('call-ai-button');
+    
     // 禁用按钮并显示处理状态
-    callAiButton.disabled = true;
-    callAiButton.textContent = 'Processing...';
+    if (callAiButton) {
+        callAiButton.disabled = true;
+        callAiButton.innerHTML = `
+            <svg class="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            Processing...
+        `;
+    }
 
     // 逐个处理选中的图像
     processImagesSequentially(Array.from(selectedCheckboxes));
@@ -274,14 +290,18 @@ document.addEventListener('keydown', function(event) {
 
 // 逐个处理图像
 async function processImagesSequentially(checkboxes) {
-    const callAiButton = document.getElementById('call-ai-button');
+    // 获取浮动按钮或原来的按钮
+    const callAiButton = document.getElementById('floating-call-ai-button') || document.getElementById('call-ai-button');
     
     for (let i = 0; i < checkboxes.length; i++) {
         const checkbox = checkboxes[i];
-        const imageId = checkbox.getAttribute('data-image-id');
+        const card = checkbox.closest('[data-image-id]');
+        const imageId = card.getAttribute('data-image-id');
         
         // 更新状态为处理中
         updateImageStatus(imageId, 'processing');
+        // 清除已有的结果数据按钮
+        clearResultDataButton(imageId);
         
         try {
             // 发送AJAX请求进行AI分析
@@ -297,31 +317,55 @@ async function processImagesSequentially(checkboxes) {
             });
             
             const data = await response.json();
-            
+            //console.log(data);
             if (response.ok) {
                 // 更新状态和结果数据
                 updateImageStatus(imageId, 'completed');
                 if (data.result_data) {
-                    updateResultData(imageId, data.result_data);
+                    updateResultData(imageId, data);
+                    //console.log(data.result_data);
                 }
             } else {
-                // 更新状态为失败
+                // 更新状态为失败，并显示错误信息
                 updateImageStatus(imageId, 'failed');
+                if (data.error) {
+                    // 创建错误信息对象
+                    const errorData = {
+                        error: data.error,
+                        status: 'failed',
+                        message: 'AI analysis failed'
+                    };
+                    updateResultData(imageId, errorData);
+                }
             }
         } catch (error) {
             console.error('Error analyzing image:', error);
             updateImageStatus(imageId, 'failed');
+            // 显示错误信息
+            const errorData = {
+                error: error.message,
+                status: 'failed',
+                message: 'Network or processing error'
+            };
+            updateResultData(imageId, errorData);
         }
     }
     
     // 恢复按钮状态
-    callAiButton.disabled = false;
-    callAiButton.textContent = 'Call AI Analysis';
+    if (callAiButton) {
+        callAiButton.disabled = false;
+        callAiButton.innerHTML = `
+            <svg class="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.994l-3.5-3.5a1 1 0 00-1.414 0l-3.5 3.5a1 1 0 001.414 1.414L9 9.414V13a1 1 0 102 0V9.414l1.293 1.293a1 1 0 001.414-1.414z" clip-rule="evenodd" />
+            </svg>
+            Analyze Single File
+        `;
+    }
 }
 
 // 更新图像状态
 function updateImageStatus(imageId, status) {
-    const statusElement = document.querySelector(`tr[data-image-id="${imageId}"] .image-status`);
+    const statusElement = document.querySelector(`[data-image-id="${imageId}"] .image-status`);
     if (statusElement) {
         // 清除所有可能的类
         statusElement.className = 'image-status inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium';
@@ -345,50 +389,44 @@ function updateImageStatus(imageId, status) {
 
 // 更新结果数据并添加查看按钮
 function updateResultData(imageId, resultData) {
-    const actionsCell = document.querySelector(`tr[data-image-id="${imageId}"] td:last-child`);
-    if (actionsCell) {
-        // 检查是否已存在结果按钮
-        const existingButton = actionsCell.querySelector('.result-data-icon[data-image-id="' + imageId + '"]');
-        if (!existingButton && resultData) {
+    const card = document.querySelector(`[data-image-id="${imageId}"]`);
+    if (card) {
+        const resultContainer = card.querySelector('.text-center:last-child');
+        if (resultContainer && resultData) {
+            // 清除现有的结果按钮
+            const existingButton = resultContainer.querySelector('.result-data-icon');
+            if (existingButton) {
+                existingButton.remove();
+            }
+            
             // 添加结果数据查看按钮
             const button = document.createElement('button');
             button.className = 'text-green-600 hover:text-green-900 result-data-icon';
             button.title = 'View Result Data';
             button.setAttribute('data-image-id', imageId);
             button.innerHTML = `
-                <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                <svg class="h-5 w-5 mx-auto" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                     <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
                 </svg>
+                <span class="text-xs">View Result</span>
             `;
             
-            // 转义resultData中的特殊字符
-            const escapedResultData = JSON.stringify(resultData).replace(/'/g, "\\'").replace(/"/g, '&quot;');
-            button.setAttribute('onclick', `showResultData(${imageId}, '${escapedResultData}')`);
+            // 使用事件监听器替代onclick属性，避免引号问题
+            button.addEventListener('click', function() {
+                showResultData(imageId, resultData);
+            });
             
-            actionsCell.innerHTML = ''; // 清空单元格
-            actionsCell.appendChild(button);
+            resultContainer.appendChild(button);
         }
     }
 }
 
-// 显示结果数据
-function showResultData(imageId, resultData) {
-    let parsedData;
-    try {
-        if (typeof resultData === 'string') {
-            parsedData = JSON.parse(resultData);
-        } else {
-            parsedData = resultData;
-        }
-    } catch (e) {
-        console.error('Error parsing result data:', e);
-        parsedData = resultData;
+// 清除结果数据按钮
+function clearResultDataButton(imageId) {
+    const resultButton = document.querySelector(`[data-image-id="${imageId}"] .result-data-icon`);
+    if (resultButton) {
+        resultButton.remove();
     }
-    
-    // 将数据显示在固定模态框中
-    document.getElementById('resultDataContent').textContent = JSON.stringify(parsedData, null, 2);
-    document.getElementById('resultDataModal').classList.remove('hidden');
-    document.body.classList.add('overflow-hidden');
 }
 
 // 获取CSRF token
@@ -406,4 +444,74 @@ function getCookie(name) {
     }
     return cookieValue;
 }
+
+// 添加浮动按钮的处理函数
+document.addEventListener('DOMContentLoaded', function() {
+    // 创建浮动按钮
+    const floatingButton = document.createElement('button');
+    floatingButton.id = 'floating-call-ai-button';
+    floatingButton.className = 'fixed bottom-6 right-6 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 z-10';
+    floatingButton.innerHTML = `
+        <svg class="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.994l-3.5-3.5a1 1 0 00-1.414 0l-3.5 3.5a1 1 0 001.414 1.414L9 9.414V13a1 1 0 102 0V9.414l1.293 1.293a1 1 0 001.414-1.414z" clip-rule="evenodd" />
+        </svg>
+        Analyze Single File
+    `;
+    floatingButton.style.display = 'none'; // 默认隐藏
+    
+    // 添加点击事件
+    floatingButton.addEventListener('click', handleAnalyzeSingleFile);
+    
+    // 将按钮添加到页面
+    document.body.appendChild(floatingButton);
+    
+    // 检查页面是否包含图像表格，如果有则显示浮动按钮
+    const imageGrid = document.querySelector('.grid');
+    if (imageGrid) {
+        floatingButton.style.display = 'flex';
+        
+        // 为全选复选框添加事件监听器
+        const selectAllCheckbox = document.getElementById('select-all-checkbox');
+        if (selectAllCheckbox) {
+            selectAllCheckbox.addEventListener('change', function() {
+                const checkboxes = document.querySelectorAll('.image-checkbox');
+                checkboxes.forEach(checkbox => {
+                    checkbox.checked = this.checked;
+                    const card = checkbox.closest('[data-image-id]');
+                    if (this.checked) {
+                        card.classList.add('shadow-xl', 'border-blue-500', 'border-2');
+                        card.classList.remove('shadow-md', 'border-gray-200');
+                    } else {
+                        card.classList.remove('shadow-xl', 'border-blue-500', 'border-2');
+                        card.classList.add('shadow-md', 'border-gray-200');
+                    }
+                });
+            });
+        }
+        
+        // 为每个复选框添加事件监听器
+        const cards = imageGrid.querySelectorAll('[data-image-id]');
+        cards.forEach(card => {
+            const checkbox = card.querySelector('.image-checkbox');
+            
+            checkbox.addEventListener('change', function() {
+                if (this.checked) {
+                    card.classList.add('shadow-xl', 'border-blue-500', 'border-2');
+                    card.classList.remove('shadow-md', 'border-gray-200');
+                } else {
+                    card.classList.remove('shadow-xl', 'border-blue-500', 'border-2');
+                    card.classList.add('shadow-md', 'border-gray-200');
+                }
+                
+                // 更新全选复选框状态
+                const allCheckboxes = document.querySelectorAll('.image-checkbox');
+                const allChecked = Array.from(allCheckboxes).every(cb => cb.checked);
+                const selectAllCheckbox = document.getElementById('select-all-checkbox');
+                if (selectAllCheckbox) {
+                    selectAllCheckbox.checked = allChecked;
+                }
+            });
+        });
+    }
+});
 </script>

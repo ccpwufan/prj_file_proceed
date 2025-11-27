@@ -8,6 +8,8 @@ class DifyAPIService:
         self.api_key = settings.DIFY_API_KEY
         self.user = settings.DIFY_USER
         self.server = settings.DIFY_SERVER
+        # 从环境变量读取超时设置，默认为60秒
+        self.timeout = int(os.getenv('DIFY_TIMEOUT', '60'))
     
     def upload_image(self, image_path):
         """Upload image to Dify and return file_id"""
@@ -20,7 +22,7 @@ class DifyAPIService:
         with open(image_path, 'rb') as file:
             files = {'file': (os.path.basename(image_path), file, mime)}
             data = {'user': self.user}
-            response = requests.post(url, headers=headers, files=files, data=data)
+            response = requests.post(url, headers=headers, files=files, data=data, timeout=self.timeout)
         
         if response.status_code == 201:
             return response.json()['id']
@@ -46,7 +48,7 @@ class DifyAPIService:
             "response_mode": "blocking"
         }
         
-        response = requests.post(url, headers=headers, json=data)
+        response = requests.post(url, headers=headers, json=data, timeout=self.timeout)
         
         if response.status_code == 200:
             resp_json = response.json()
