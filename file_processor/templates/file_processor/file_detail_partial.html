@@ -320,6 +320,7 @@ async function processImagesSequentially(checkboxes) {
             //console.log(data);
             if (response.ok) {
                 // 更新状态和结果数据
+                //console.log('AI analysis successful');
                 updateImageStatus(imageId, 'completed');
                 if (data.result_data) {
                     updateResultData(imageId, data);
@@ -365,24 +366,27 @@ async function processImagesSequentially(checkboxes) {
 
 // 更新图像状态
 function updateImageStatus(imageId, status) {
-    const statusElement = document.querySelector(`[data-image-id="${imageId}"] .image-status`);
-    if (statusElement) {
-        // 清除所有可能的类
-        statusElement.className = 'image-status inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium';
-        
-        // 根据状态添加相应的类
-        if (status === 'completed') {
-            statusElement.classList.add('bg-green-100', 'text-green-800');
-            statusElement.textContent = 'Completed';
-        } else if (status === 'failed') {
-            statusElement.classList.add('bg-red-100', 'text-red-800');
-            statusElement.textContent = 'Failed';
-        } else if (status === 'processing') {
-            statusElement.classList.add('bg-yellow-100', 'text-yellow-800');
-            statusElement.textContent = 'Processing';
-        } else {
-            statusElement.classList.add('bg-gray-100', 'text-gray-800');
-            statusElement.textContent = 'Pending';
+    const card = document.querySelector(`[data-image-id="${imageId}"]`);
+    if (card) {
+        const statusElement = card.querySelector('.image-status');
+        if (statusElement) {
+            // 清除所有可能的类
+            statusElement.className = 'image-status inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium';
+            
+            // 根据状态添加相应的类
+            if (status === 'completed') {
+                statusElement.classList.add('bg-green-100', 'text-green-800');
+                statusElement.textContent = 'Completed';
+            } else if (status === 'failed') {
+                statusElement.classList.add('bg-red-100', 'text-red-800');
+                statusElement.textContent = 'Failed';
+            } else if (status === 'processing') {
+                statusElement.classList.add('bg-yellow-100', 'text-yellow-800');
+                statusElement.textContent = 'Processing';
+            } else {
+                statusElement.classList.add('bg-gray-100', 'text-gray-800');
+                statusElement.textContent = 'Pending';
+            }
         }
     }
 }
@@ -391,10 +395,11 @@ function updateImageStatus(imageId, status) {
 function updateResultData(imageId, resultData) {
     const card = document.querySelector(`[data-image-id="${imageId}"]`);
     if (card) {
-        const resultContainer = card.querySelector('.text-center:last-child');
-        if (resultContainer && resultData) {
+        // 找到按钮容器（flex space-x-1）
+        const buttonContainer = card.querySelector('.flex.space-x-1');
+        if (buttonContainer && resultData) {
             // 清除现有的结果按钮
-            const existingButton = resultContainer.querySelector('.result-data-icon');
+            const existingButton = buttonContainer.querySelector('.result-data-icon');
             if (existingButton) {
                 existingButton.remove();
             }
@@ -405,10 +410,9 @@ function updateResultData(imageId, resultData) {
             button.title = 'View Result Data';
             button.setAttribute('data-image-id', imageId);
             button.innerHTML = `
-                <svg class="h-5 w-5 mx-auto" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                     <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
                 </svg>
-                <span class="text-xs">View Result</span>
             `;
             
             // 使用事件监听器替代onclick属性，避免引号问题
@@ -416,16 +420,19 @@ function updateResultData(imageId, resultData) {
                 showResultData(imageId, resultData);
             });
             
-            resultContainer.appendChild(button);
+            buttonContainer.appendChild(button);
         }
     }
 }
 
 // 清除结果数据按钮
 function clearResultDataButton(imageId) {
-    const resultButton = document.querySelector(`[data-image-id="${imageId}"] .result-data-icon`);
-    if (resultButton) {
-        resultButton.remove();
+    const card = document.querySelector(`[data-image-id="${imageId}"]`);
+    if (card) {
+        const resultButton = card.querySelector('.result-data-icon');
+        if (resultButton) {
+            resultButton.remove();
+        }
     }
 }
 

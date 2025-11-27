@@ -140,6 +140,8 @@ DIFY_API_KEY = os.getenv("DIFY_API_KEY")
 DIFY_USER = os.getenv("DIFY_USER")
 DIFY_SERVER = os.getenv("DIFY_SERVER")
 
+DIFY_API_KEY_INVICE_FILES = os.getenv("DIFY_API_KEY_INVICE_FILES")
+
 # Login/Logout redirect URLs
 LOGIN_URL = '/auth/login/'
 LOGIN_REDIRECT_URL = '/'

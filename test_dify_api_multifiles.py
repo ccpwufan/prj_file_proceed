@@ -18,23 +18,25 @@ django.setup()
 from django.conf import settings
 from file_processor.services import DifyAPIService
 import requests
+DIFY_API_KEY = settings.DIFY_API_KEY_INVICE_FILES
 
 def test_dify_connection():
     """Test basic Dify API connection"""
     print("=== Dify API Connection Test ===")
     
     # Check environment variables
-    print(f"DIFY_API_KEY: {'✓' if settings.DIFY_API_KEY else '✗'}")
+
+    print(f"DIFY_API_KEY: {'✓' if DIFY_API_KEY else '✗'}")
     print(f"DIFY_USER: {settings.DIFY_USER}")
     print(f"DIFY_SERVER: {settings.DIFY_SERVER}")
     
-    if not settings.DIFY_API_KEY:
+    if not DIFY_API_KEY:
         print("❌ DIFY_API_KEY not found in environment variables")
         return False
     
     # Test basic API connectivity
     try:
-        service = DifyAPIService()
+        service = DifyAPIService(DIFY_API_KEY)
         print(f"Service initialized with timeout: {service.timeout}s")
         
         # Test a simple API call (this might fail but will show connectivity)
@@ -84,17 +86,79 @@ def test_image_file_access():
     
     return True
 
+def test_multiple_image_upload():
+    """Test multiple image upload functionality"""
+    print("\n=== Multiple Image Upload Test ===")
+    
+    from file_processor.models import FileDetail
+    
+    images = FileDetail.objects.all()[:2]
+    
+    if len(images) < 2:
+        print("❌ Need at least 2 images for multiple upload test")
+        return False
+    
+    try:
+        service = DifyAPIService(DIFY_API_KEY)
+        
+        image_paths = [img.file_detail_filename.path for img in images]
+        print(f"Testing upload of {len(image_paths)} images")
+        
+        file_ids = service.upload_multiple_images(image_paths)
+        print(f"✅ Successfully uploaded {len(file_ids)} images")
+        print(f"File IDs: {file_ids}")
+        
+        return True
+        
+    except Exception as e:
+        print(f"❌ Multiple upload failed: {str(e)}")
+        return False
+
+def test_multiple_image_analysis():
+    """Test multiple image analysis functionality"""
+    print("\n=== Multiple Image Analysis Test ===")
+    
+    from file_processor.models import FileDetail
+    
+    images = FileDetail.objects.all()[:2]
+    
+    if len(images) < 2:
+        print("❌ Need at least 2 images for multiple analysis test")
+        return False
+    
+    try:
+        service = DifyAPIService(DIFY_API_KEY)
+        
+        print(f"Testing analysis of {len(images)} images")
+        
+        result = service.analyze_multiple_images(images)
+        
+        if "error" in result:
+            print(f"❌ Analysis failed: {result['error']}")
+            return False
+        else:
+            print("✅ Multiple image analysis completed successfully")
+            return True
+        
+    except Exception as e:
+        print(f"❌ Multiple analysis failed: {str(e)}")
+        return False
+
 if __name__ == "__main__":
     print("Starting Dify API tests...\n")
     
     api_ok = test_dify_connection()
     files_ok = test_image_file_access()
+    upload_ok = test_multiple_image_upload()
+    analysis_ok = test_multiple_image_analysis()
     
     print(f"\n=== Test Results ===")
     print(f"API Connection: {'✅' if api_ok else '❌'}")
     print(f"File Access: {'✅' if files_ok else '❌'}")
+    print(f"Multiple Upload: {'✅' if upload_ok else '❌'}")
+    print(f"Multiple Analysis: {'✅' if analysis_ok else '❌'}")
     
-    if api_ok and files_ok:
-        print("\n🎉 All tests passed! Dify API should work.")
+    if all([api_ok, files_ok, upload_ok, analysis_ok]):
+        print("\n🎉 All tests passed! Multi-file Dify API works.")
     else:
         print("\n⚠️  Some tests failed. Check the issues above.")
