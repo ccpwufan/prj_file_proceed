@@ -4,7 +4,7 @@
 
 {% block content %}
 <div class="w-full">
-    {% if conversion.status == 'processing' %}
+    {% if conversion.status == 'processing' or conversion.status == 'converting' %}
     <script>
         // Auto-refresh page every 5 seconds if conversion is still processing
         setTimeout(function() {

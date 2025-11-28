@@ -1,7 +1,7 @@
 import os
 import requests
 from django.conf import settings
-from .models import ImageAnalysis, AnalysisResult
+from .models import FileAnalysis, AnalysisResult
 
 class DifyAPIService:
     def __init__(self, api_key=None):
@@ -104,11 +104,11 @@ class DifyAPIService:
     def analyze_images(self, analysis_id):
         """Analyze multiple images for a given analysis"""
         try:
-            analysis = ImageAnalysis.objects.get(id=analysis_id)
+            analysis = FileAnalysis.objects.get(id=analysis_id)
             analysis.status = 'processing'
             analysis.save()
             
-            for image in analysis.images.all():
+            for image in analysis.files.all():
                 try:
                     # Upload image to Dify
                     file_id = self.upload_image(image.image_file.path)

@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import FileHeader, FileDetail, ImageAnalysis, AnalysisResult
+from .models import FileHeader, FileDetail, FileAnalysis, AnalysisResult
 
 @admin.register(FileHeader)
 class FileHeaderAdmin(admin.ModelAdmin):
@@ -13,12 +13,11 @@ class FileDetailAdmin(admin.ModelAdmin):
     list_filter = ('created_at', 'file_header__user')
     search_fields = ('file_detail_filename', 'file_header__file_header_filename')
 
-@admin.register(ImageAnalysis)
-class ImageAnalysisAdmin(admin.ModelAdmin):
-    list_display = ('user', 'created_at', 'status')
-    list_filter = ('created_at', 'status', 'user')
+@admin.register(FileAnalysis)
+class FileAnalysisAdmin(admin.ModelAdmin):
+    list_display = ('user', 'analysis_type', 'created_at', 'status')
+    list_filter = ('created_at', 'status', 'user', 'analysis_type')
     search_fields = ('user__username',)
-    filter_horizontal = ('images',)
 
 @admin.register(AnalysisResult)
 class AnalysisResultAdmin(admin.ModelAdmin):

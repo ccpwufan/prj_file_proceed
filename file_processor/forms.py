@@ -30,6 +30,8 @@ class PDFUploadForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super(PDFUploadForm, self).__init__(*args, **kwargs)
         self.fields['comments'].required = False
+        # Set default value for processor field
+        self.fields['processor'].initial = 'ExpenseReport'
     
     def clean_file_header_filename(self):
         file_header_filename = self.cleaned_data.get('file_header_filename')
