@@ -1,4 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
+from django.urls import reverse
 from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
@@ -6,7 +7,8 @@ from django.http import JsonResponse
 from django.template.loader import render_to_string
 from django.db import transaction
 from django.utils import timezone
-from .models import FileHeader, FileDetail, ImageAnalysis, AnalysisResult
+from django.db.models import Case, When, Value, CharField
+from .models import FileHeader, FileDetail, FileAnalysis, AnalysisResult
 from .forms import PDFUploadForm, CustomUserCreationForm, ImageSelectionForm
 from .services import DifyAPIService
 import fitz  # PyMuPDF
@@ -56,7 +58,7 @@ def upload_file(request):
             thread = threading.Thread(target=convert_pdf_to_images, args=(file_header,))
             thread.start()
             messages.success(request, 'PDF uploaded and conversion started!')
-            return redirect('file_detail', pk=file_header.pk)
+            return redirect(f"{reverse('file_list')}?selected_file={file_header.pk}")
     else:
         form = PDFUploadForm()
     
@@ -116,8 +118,8 @@ def image_analysis(request):
             selected_images = form.cleaned_data['selected_images']
             
             # Create analysis record
-            analysis = ImageAnalysis.objects.create(user=request.user)
-            analysis.images.set(selected_images)
+            analysis = FileAnalysis.objects.create(user=request.user)
+            analysis.files.set(selected_images)
             
             # Start analysis in background
             dify_service = DifyAPIService()
@@ -133,7 +135,7 @@ def image_analysis(request):
 
 @login_required
 def analysis_detail(request, pk):
-    analysis = get_object_or_404(ImageAnalysis, pk=pk)
+    analysis = get_object_or_404(FileAnalysis, pk=pk)
     if not request.user.is_superuser and analysis.user != request.user:
         messages.error(request, 'You can only view your own analyses.')
         return redirect('analysis_list')
@@ -147,14 +149,60 @@ def analysis_detail(request, pk):
 @login_required
 def analysis_list(request):
     if request.user.is_superuser:
-        analyses = ImageAnalysis.objects.all()
+        analyses = FileAnalysis.objects.all()
     else:
-        analyses = ImageAnalysis.objects.filter(user=request.user)
-    return render(request, 'file_processor/analysis_list.html', {'analyses': analyses})
+        analyses = FileAnalysis.objects.filter(user=request.user)
+    
+    # 处理排序参数
+    sort_by = request.GET.get('sort', '-created_at')
+    valid_sort_fields = ['created_at', '-created_at', 'status', '-status', 'analysis_type', '-analysis_type', 'user__username', '-user__username']
+    
+    # 检查是否是按文件名排序
+    if sort_by == 'file_name' or sort_by == '-file_name':
+        # 使用 annotate 添加文件名字段用于排序
+        analyses = analyses.annotate(
+            file_name=Case(
+                When(analysis_type='header', then='file_header__file_header_filename'),
+                When(analysis_type='single', then='file_detail__file_header__file_header_filename'),
+                default=Value(''),
+                output_field=CharField()
+            )
+        )
+        
+        if sort_by == 'file_name':
+            analyses = analyses.order_by('file_name')
+        else:
+            analyses = analyses.order_by('-file_name')
+    elif sort_by in valid_sort_fields:
+        analyses = analyses.order_by(sort_by)
+    else:
+        analyses = analyses.order_by('-created_at')
+    
+    # 分页，每页显示10条记录
+    paginator = Paginator(analyses, 10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    return render(request, 'file_processor/analysis_list.html', {
+        'page_obj': page_obj,
+        'current_sort': sort_by
+    })
+
+
+def get_file_name_for_analysis(analysis):
+    """
+    获取分析记录对应的文件名，用于排序
+    """
+    if analysis.analysis_type == 'header' and analysis.file_header:
+        return analysis.file_header.file_header_filename.name
+    elif analysis.analysis_type == 'single' and analysis.file_detail:
+        return analysis.file_detail.file_header.file_header_filename.name
+    else:
+        return ""  # 如果无法确定文件名，则返回空字符串
 
 @login_required
-def analyze_image(request):
-    """分析单个图像"""
+def analyze_single_file(request):
+    """分析单个文件"""
     if request.method == 'POST' and request.headers.get('Content-Type') == 'application/json':
         try:
             import json
@@ -168,6 +216,15 @@ def analyze_image(request):
             if not request.user.is_superuser and image.file_header.user != request.user:
                 return JsonResponse({'error': 'Permission denied'}, status=403)
             
+            # 创建新的FileAnalysis记录
+            analysis = FileAnalysis.objects.create(
+                user=request.user,
+                file_detail=image,
+                analysis_type='single',
+                status='processing',
+                api_key_used=settings.DIFY_API_KEY
+            )
+            
             # 清除已有的result_data
             image.result_data = None
             # 更新状态为处理中
@@ -177,19 +234,42 @@ def analyze_image(request):
             dify_service = DifyAPIService()
             result_data = dify_service.analyze_single_image(image)
             
-            # 更新结果数据和状态
-            image.result_data = {
-                'status': 'success',
-                'result_data': result_data
-            }
-            image.status = 'completed'
-            image.save()
-            
-            return JsonResponse({
-                'status': 'success',
-                'result_data': result_data
-            })
+            # 更新分析记录
+            if 'error' not in result_data:
+                analysis.status = 'completed'
+                analysis.result_data = str(result_data)
+                analysis.save()
+                
+                # 更新结果数据和状态
+                image.result_data = {
+                    'status': 'success',
+                    'result_data': result_data
+                }
+                image.status = 'completed'
+                image.save()
+                
+                return JsonResponse({
+                    'status': 'success',
+                    'analysis_id': analysis.id,
+                    'result_data': result_data
+                })
+            else:
+                analysis.status = 'failed'
+                analysis.result_data = str(result_data)
+                analysis.save()
+                
+                image.status = 'failed'
+                image.save()
+                
+                return JsonResponse({'error': result_data.get('error')}, status=500)
+                
         except Exception as e:
+            # 记录异常
+            if 'analysis' in locals():
+                analysis.status = 'failed'
+                analysis.result_data = f"Exception: {str(e)}"
+                analysis.save()
+            
             # 更新状态为失败
             if 'image' in locals():
                 # 组织错误信息存入result_data
@@ -227,6 +307,15 @@ def analyze_all_files(request, pk):
             if not images.exists():
                 return JsonResponse({'error': 'No images found for this file'}, status=400)
             
+            # 创建新的FileAnalysis记录
+            analysis = FileAnalysis.objects.create(
+                user=request.user,
+                file_header=file_header,
+                analysis_type='header',
+                status='processing',
+                api_key_used=settings.DIFY_API_KEY_INVICE_FILES
+            )
+            
             # Set status to processing and clear existing log
             file_header.status = 'processing'
             file_header.log = ""
@@ -255,6 +344,11 @@ def analyze_all_files(request, pk):
             success, result_data, error_msg = dify_service.run_workflow_files(file_ids)
             
             if success:
+                # 更新分析记录
+                analysis.status = 'completed'
+                analysis.result_data = result_data
+                analysis.save()
+                
                 # 更新file_header状态为completed，并保存result_data
                 append_log(file_header, "Workflow analysis completed successfully")
                 file_header.status = 'completed'
@@ -264,10 +358,16 @@ def analyze_all_files(request, pk):
                 
                 return JsonResponse({
                     'status': 'success',
+                    'analysis_id': analysis.id,
                     'message': f'Successfully analyzed {len(images)} images',
                     'result_data': result_data
                 })
             else:
+                # 更新分析记录
+                analysis.status = 'failed'
+                analysis.result_data = f"Error: {error_msg}"
+                analysis.save()
+                
                 # 更新file_header状态为failed，并保存错误信息
                 append_log(file_header, f"Workflow analysis failed: {error_msg}")
                 file_header.status = 'failed'
@@ -277,7 +377,17 @@ def analyze_all_files(request, pk):
                 return JsonResponse({'error': error_msg}, status=500)
                 
         except Exception as e:
+            # 记录异常到分析记录
+            if 'analysis' in locals():
+                analysis.status = 'failed'
+                analysis.result_data = f"Exception: {str(e)}"
+                analysis.save()
+            
             append_log(file_header if 'file_header' in locals() else get_object_or_404(FileHeader, pk=pk), f"Analysis failed with exception: {str(e)}")
+            # 更新file_header状态为failed，并保存错误信息
+            file_header.status = 'failed'
+            file_header.result_data = datetime.now().strftime("%Y-%m-%d %H:%M:%S")+": " + f"Analysis failed with exception:: {str(e)}"
+            file_header.save()
             return JsonResponse({'error': str(e)}, status=500)
     
     return JsonResponse({'error': 'Invalid request'}, status=400)
@@ -338,7 +448,7 @@ def delete_file(request, pk):
 def convert_pdf_to_images(pdf_conversion):
     """Convert PDF to PNG images"""
     try:
-        pdf_conversion.status = 'processing'
+        pdf_conversion.status = 'converting'
         pdf_conversion.save()
         
         # Open PDF file
@@ -383,13 +493,13 @@ def convert_pdf_to_images(pdf_conversion):
 @login_required
 def result_detail(request, pk):
     """Display result data with tabs for Result and Think sections"""
-    file_header = get_object_or_404(FileHeader, pk=pk)
+    analysis = get_object_or_404(FileAnalysis, pk=pk)
     
     # Check permission
-    if not request.user.is_superuser and file_header.user != request.user:
+    if not request.user.is_superuser and analysis.user != request.user:
         return redirect('login')
     
-    result_data = file_header.result_data or ''
+    result_data = analysis.result_data or ''
     
     # Debug: Print result_data info
     print(f"Result data length: {len(result_data)}")
@@ -411,10 +521,10 @@ def result_detail(request, pk):
             result_content += result_data[result_data.find('</think>') + len('</think>'):].strip()
     
     context = {
-        'file_header': file_header,
+        'analysis': analysis,
         'result_content': result_content,
         'think_content': think_content,
-        'log_content': file_header.log or '',
+        'log_content': analysis.log or '',
     }
     
     return render(request, 'file_processor/result_detail.html', context)
