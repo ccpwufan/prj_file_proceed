@@ -84,12 +84,20 @@ def file_list(request):
     else:
         conversions = FileHeader.objects.filter(user=request.user)
     
+    # 添加comments字段的模糊查询功能
+    search_query = request.GET.get('search', '')
+    if search_query:
+        conversions = conversions.filter(comments__icontains=search_query)
+    
     # 分页，每页显示10条记录
     paginator = Paginator(conversions, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     
-    return render(request, 'file_processor/file_list.html', {'page_obj': page_obj})
+    return render(request, 'file_processor/file_list.html', {
+        'page_obj': page_obj,
+        'search_query': search_query
+    })
 
 
 @login_required
@@ -349,11 +357,45 @@ def analyze_all_files(request, pk):
                 analysis.result_data = result_data
                 analysis.save()
                 
+                # 解析result_content（模仿result_detail函数的逻辑）
+                result_content = result_data
+                if '<think>' in result_data and '</think>' in result_data:
+                    # Extract content between <think> tags
+                    start_idx = result_data.find('<think>') + len('<think>')
+                    end_idx = result_data.find('</think>', start_idx)
+                    think_content = result_data[start_idx:end_idx].strip()
+                    
+                    # Remove think section from result content
+                    result_content = result_data[:result_data.find('<think>')].strip()
+                    if result_data.find('</think>') + len('</think>') < len(result_data):
+                        result_content += result_data[result_data.find('</think>') + len('</think>'):].strip()
+                
+                # 从result_content中提取部门和姓名信息写入header.comments
+                comments_parts = []
+                if isinstance(result_content, str):
+                    import re
+                    
+                # 更健壮的版本，处理关键词可能缺失的情况
+                dept_match = re.search(r'(?:部门|dept)\s*[:：]?\s*([^,\n\r]+)', result_content, re.IGNORECASE)
+                if dept_match:
+                    department = dept_match.group(1).strip()
+                    comments_parts.append(f"部门：{department}")
+
+                name_match = re.search(r'(?:姓名|name)\s*[:：]?\s*([^,\n\r]+)', result_content, re.IGNORECASE)
+                if name_match:
+                    name = name_match.group(1).strip()
+                    comments_parts.append(f"姓名：{name}")
+                
                 # 更新file_header状态为completed，并保存result_data
                 append_log(file_header, "Workflow analysis completed successfully")
                 file_header.status = 'completed'
                 # 将result_data转换为字符串存储
                 file_header.result_data = str(datetime.now().strftime("%Y-%m-%d %H:%M:%S")+": " + result_data)
+                
+                # 将提取的信息保存到comments字段（存为一行，去掉换行符）
+                if comments_parts:
+                    file_header.comments = ", ".join(comments_parts)
+                
                 file_header.save()
                 
                 return JsonResponse({

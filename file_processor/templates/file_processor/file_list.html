@@ -16,6 +16,7 @@
             </div>
         </div>
     </div>
+
     
     <div class="flex flex-col lg:flex-row gap-0" id="file-list-container">
         <!-- 左侧文件列表 -->
@@ -24,6 +25,26 @@
                 <!-- 移除了顶部的折叠按钮 -->
                 <div class="flex justify-between items-center px-4 py-2 bg-gray-50 border-b border-gray-200">
                     <h3 class="text-lg font-medium text-gray-900">Files</h3>
+                    <!-- 将搜索框放在这里 -->
+                    <div class="flex items-center">
+                        <form method="get" class="flex items-center">
+                            <div class="relative rounded-md shadow-sm">
+                                <input type="text" name="search" value="{{ search_query }}" placeholder="搜索 comments..." class="focus:ring-indigo-500 focus:border-indigo-500 block w-full pr-10 py-1 sm:text-sm border-gray-300 rounded-md">
+                                <div class="absolute inset-y-0 right-0 flex items-center pr-2">
+                                    <button type="submit" class="text-gray-400 hover:text-gray-600">
+                                        <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                            {% if search_query %}
+                            <a href="{% url 'file_list' %}" class="ml-2 text-sm text-gray-500 hover:text-gray-700">
+                                Clear
+                            </a>
+                            {% endif %}
+                        </form>
+                    </div>
                 </div>
                 <div class="overflow-y-auto" style="max-height: calc(100vh - 250px);">
                     {% for conversion in page_obj %}
@@ -40,14 +61,7 @@
                                             {% else %}bg-gray-100 text-gray-800{% endif %}">
                                     {{ conversion.get_status_display }}
                                 </span>
-                                {% if conversion.status == 'completed' %}
-                                <button onclick="event.stopPropagation(); viewOriginalFile({{ conversion.pk }}, '{{ conversion.file_header_filename.url }}')" class="text-gray-500 hover:text-gray-700">
-                                    <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                        <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
-                                        <path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd" />
-                                    </svg>
-                                </button>
-                                {% endif %}
+
                                 <!-- 添加删除按钮 -->
                                 <button onclick="event.stopPropagation(); deleteFile({{ conversion.pk }})" class="text-red-500 hover:text-red-700" title="Delete file">
                                     <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
@@ -57,14 +71,20 @@
                             </div>
                         </div>
 
-                        <div class="mt-1 flex items-center text-sm text-gray-500">
-                            <span>Pages: {{ conversion.total_pages }}</span>
+                        <!-- 添加comments显示 -->
+                        {% if conversion.comments %}
+                        <div class="mt-1 text-sm text-gray-500">
+                           Comments: {{ conversion.comments }}
+                        </div>
+                        {% endif %}
+                        <div class="mt-1 text-sm text-gray-500">
                             {% if conversion.processor %}
-                            <span class="ml-2">Processor: {{ conversion.processor }}</span>
+                            Processor: {{ conversion.processor }} |
                             {% endif %}
+                            Pages Count: {{ conversion.total_pages }}
                         </div>
                         <div class="mt-1 text-sm text-gray-500">
-                            Created by: {{ conversion.user.username }}
+                            {{ conversion.user.username }} upload at: {{ conversion.created_at|date:"Y-m-d H:i" }} 
                         </div>
                     </div>
                     {% endfor %}
@@ -210,6 +230,19 @@ document.addEventListener('DOMContentLoaded', function() {
             targetCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
     }
+    
+    // 添加搜索框防抖功能
+    const searchInput = document.querySelector('input[name="search"]');
+    if (searchInput) {
+        let timeout = null;
+        searchInput.addEventListener('input', function() {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => {
+                // 触发表单提交
+                this.form.submit();
+            }, 500); // 500ms防抖延迟
+        });
+    }
 });
 
 // 点击卡片时显示文件详情
@@ -309,11 +342,7 @@ function closePreviewModal() {
     document.body.classList.remove('overflow-hidden');
 }
 
-function viewOriginalFile(fileId, fileUrl) {
-    event.stopPropagation();
-    // 直接在新窗口中打开原始文件
-    window.open(fileUrl, '_blank');
-}
+
 
 // 允许按 ESC 键关闭模态框
 document.addEventListener('keydown', function(event) {
