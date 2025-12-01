@@ -42,18 +42,8 @@ def test_templates():
         else:
             print("❌ analysis_list模板可能有问题")
         
-        # 测试analysis_detail模板
-        print("\n测试analysis_detail模板...")
-        analysis = analyses.first()
-        html = render_to_string('file_processor/analysis_detail.html', {
-            'analysis': analysis,
-            'user': user
-        })
-        
-        if 'get_analysis_type_display' in html:
-            print("✅ analysis_detail模板渲染成功，包含analysis_type")
-        else:
-            print("❌ analysis_detail模板可能有问题")
+        # analysis_detail模板已被删除，跳过测试
+        print("\n⚠️  analysis_detail模板已被删除，跳过测试")
         
         return True
         

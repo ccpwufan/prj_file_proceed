@@ -21,9 +21,7 @@ urlpatterns = [
     path('file/get-log/<int:pk>/', views.get_log, name='get_log'),
     
     # Image Analysis URLs
-    path('analysis/', views.image_analysis, name='image_analysis'),
     path('analysis/list/', views.analysis_list, name='analysis_list'),
-    path('analysis/detail/<int:pk>/', views.analysis_detail, name='analysis_detail'),
     
     # Result Detail URLs
     path('result/detail/<int:pk>/', views.result_detail, name='result_detail'),

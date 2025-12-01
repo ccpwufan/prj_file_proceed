@@ -8,8 +8,8 @@ from django.template.loader import render_to_string
 from django.db import transaction
 from django.utils import timezone
 from django.db.models import Case, When, Value, CharField
-from .models import FileHeader, FileDetail, FileAnalysis, AnalysisResult
-from .forms import PDFUploadForm, CustomUserCreationForm, ImageSelectionForm
+from .models import FileHeader, FileDetail, FileAnalysis
+from .forms import PDFUploadForm, CustomUserCreationForm
 from .services import DifyAPIService
 import fitz  # PyMuPDF
 import os
@@ -118,41 +118,9 @@ def file_detail_partial(request, pk):
     
     return JsonResponse({'html': html})
 
-@login_required
-def image_analysis(request):
-    if request.method == 'POST':
-        form = ImageSelectionForm(request.user, request.POST)
-        if form.is_valid():
-            selected_images = form.cleaned_data['selected_images']
-            
-            # Create analysis record
-            analysis = FileAnalysis.objects.create(user=request.user)
-            analysis.files.set(selected_images)
-            
-            # Start analysis in background
-            dify_service = DifyAPIService()
-            thread = threading.Thread(target=dify_service.analyze_images, args=(analysis.id,))
-            thread.start()
-            
-            messages.success(request, f'Analysis started for {selected_images.count()} images!')
-            return redirect('analysis_detail', pk=analysis.pk)
-    else:
-        form = ImageSelectionForm(request.user)
-    
-    return render(request, 'file_processor/image_analysis.html', {'form': form})
 
-@login_required
-def analysis_detail(request, pk):
-    analysis = get_object_or_404(FileAnalysis, pk=pk)
-    if not request.user.is_superuser and analysis.user != request.user:
-        messages.error(request, 'You can only view your own analyses.')
-        return redirect('analysis_list')
-    
-    results = analysis.results.all()
-    return render(request, 'file_processor/analysis_detail.html', {
-        'analysis': analysis,
-        'results': results
-    })
+
+
 
 @login_required
 def analysis_list(request):

@@ -56,18 +56,3 @@ class CustomUserCreationForm(UserCreationForm):
             user.save()
         return user
 
-class ImageSelectionForm(forms.Form):
-    def __init__(self, user, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # Get user's images, newest first
-        if user.is_superuser:
-            images = FileDetail.objects.all().order_by('-created_at')
-        else:
-            images = FileDetail.objects.filter(file_header__user=user).order_by('-created_at')
-        
-        self.fields['selected_images'] = forms.ModelMultipleChoiceField(
-            queryset=images,
-            widget=forms.CheckboxSelectMultiple(attrs={'class': 'mr-2'}),
-            required=True,
-            label='Select images to analyze'
-        )
