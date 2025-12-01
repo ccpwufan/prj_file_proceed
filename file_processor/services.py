@@ -1,4 +1,5 @@
 import os
+import json
 import requests
 from django.conf import settings
 from .models import FileAnalysis, AnalysisResult
@@ -51,16 +52,23 @@ class DifyAPIService:
         response = requests.post(url, headers=headers, json=data, timeout=self.timeout)
         
         if response.status_code == 200:
-            resp_json = response.json()
-            wf_status = resp_json.get("data", {}).get("status")
-            if wf_status == "succeeded":
-                outputs = resp_json.get("data", {}).get("outputs", {})
-                return True, outputs.get("result", {}), ""
-            else:
-                error_info = resp_json.get("data", {}).get("error") or resp_json.get("message")
-                return False, {}, error_info
+            try:
+                resp_json = response.json()
+                data_section = resp_json.get("data", {})
+                wf_status = data_section.get("status")
+                
+                if wf_status == "succeeded":
+                    outputs = data_section.get("outputs", {})
+                    return True, outputs.get("result", {}), ""
+                else:
+                    # Extract detailed error information
+                    error_info = data_section.get("error", "Unknown workflow error")
+                    return False, {}, f"Workflow failed: {error_info}"
+                    
+            except json.JSONDecodeError as e:
+                return False, {}, f"Invalid JSON response: {str(e)}"
         else:
-            return False, {}, f"Workflow failed: {response.status_code}"
+            return False, {}, f"HTTP request failed: {response.status_code} - {response.text}"
     
     def run_workflow_files(self, file_ids):
         """Run Dify workflow with multiple files and return analysis result"""
@@ -90,16 +98,23 @@ class DifyAPIService:
         response = requests.post(url, headers=headers, json=data, timeout=self.timeout)
         
         if response.status_code == 200:
-            resp_json = response.json()
-            wf_status = resp_json.get("data", {}).get("status")
-            if wf_status == "succeeded":
-                outputs = resp_json.get("data", {}).get("outputs", {})
-                return True, outputs.get("result", {}), ""
-            else:
-                error_info = resp_json.get("data", {}).get("error") or resp_json.get("message")
-                return False, {}, error_info
+            try:
+                resp_json = response.json()
+                data_section = resp_json.get("data", {})
+                wf_status = data_section.get("status")
+                
+                if wf_status == "succeeded":
+                    outputs = data_section.get("outputs", {})
+                    return True, outputs.get("result", {}), ""
+                else:
+                    # Extract detailed error information
+                    error_info = data_section.get("error", "Unknown workflow error")
+                    return False, {}, f"Workflow failed: {error_info}"
+                    
+            except json.JSONDecodeError as e:
+                return False, {}, f"Invalid JSON response: {str(e)}"
         else:
-            return False, {}, f"Workflow failed: {response.status_code}"
+            return False, {}, f"HTTP request failed: {response.status_code} - {response.text}"
     
     def analyze_images(self, analysis_id):
         """Analyze multiple images for a given analysis"""
