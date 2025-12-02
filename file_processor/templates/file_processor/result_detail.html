@@ -30,6 +30,9 @@
                                 {{ analysis.file_detail.file_detail_filename.name }}
                             {% endif %}
                         </span>
+                        <span class="ml-3 text-sm text-gray-500">
+                            Analyzed at: {{ analysis.created_at|date:"Y-m-d H:i" }}
+                        </span>
                     </div>
                     
                     <!-- 评分组件 -->

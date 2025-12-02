@@ -18,10 +18,23 @@ from dotenv import load_dotenv
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Load environment variables from .env file
-load_dotenv(BASE_DIR / '.env')
+# 优先加载.env.docker（Docker环境），否则加载.env（本地环境）
+if os.path.exists(BASE_DIR / '.env.docker'):
+    load_dotenv(BASE_DIR / '.env.docker')
+else:
+    load_dotenv(BASE_DIR / '.env')
+
+# 检测是否在Docker环境中
+DOCKER_ENV = os.getenv('DOCKER_ENV', 'False').lower() == 'true'
 
 # 1. 媒体文件存储路径（上传的 PDF + 生成的 PNG 都存在这里）
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')  # 实际路径：项目根目录/media/
+if DOCKER_ENV:
+    # Docker环境中的路径
+    MEDIA_ROOT = '/app/media'  # 容器内路径，挂载到本地media目录
+else:
+    # 本地开发环境路径
+    MEDIA_ROOT = os.path.join(BASE_DIR, 'media')  # 实际路径：项目根目录/media/
+
 MEDIA_URL = '/media/'  # 访问 URL：http://127.0.0.1:8000/media/
 
 # 2. 限制上传文件大小（PDF 不宜过大，建议 50MB 以内）
@@ -32,12 +45,15 @@ FILE_UPLOAD_MAX_MEMORY_SIZE = 1024 * 1024 * 50  # 50MB
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-pc%(xjpf*043y7)t+kgwl=omd&46%k4j#dv2d8_9_2*j96il0%'
+# 优先从环境变量获取SECRET_KEY，否则使用默认值
+SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-pc%(xjpf*043y7)t+kgwl=omd&46%k4j#dv2d8_9_2*j96il0%')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# 优先从环境变量获取DEBUG设置，否则使用默认值
+DEBUG = os.getenv('DEBUG', 'True').lower() == 'true'
 
-ALLOWED_HOSTS = ['*']
+# 允许的主机列表，从环境变量获取或使用默认值
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '*').split(',')
 
 
 # Application definition
@@ -85,12 +101,14 @@ WSGI_APPLICATION = 'prj_file_proceed.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
+# 统一使用BASE_DIR，无论本地还是Docker
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
+
 
 
 # Password validation
@@ -135,10 +153,11 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# Dify API Configuration
+# Dify API Configuration（从环境变量获取）
 DIFY_API_KEY = os.getenv("DIFY_API_KEY")
 DIFY_USER = os.getenv("DIFY_USER")
 DIFY_SERVER = os.getenv("DIFY_SERVER")
+DIFY_TIMEOUT = os.getenv("DIFY_TIMEOUT", "300")  # 默认300秒超时
 
 DIFY_API_KEY_INVICE_FILES = os.getenv("DIFY_API_KEY_INVICE_FILES")
 

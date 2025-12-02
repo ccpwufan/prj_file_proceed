@@ -110,10 +110,15 @@ def file_detail_partial(request, pk):
     # 获取相关的图片
     images = conversion.images.all()
     
+    # 获取最近一次FileAnalysis的created_at时间
+    latest_analysis = conversion.header_analyses.order_by('-created_at').first()
+    latest_analysis_time = latest_analysis.created_at if latest_analysis else None
+    
     # 渲染局部模板
     html = render_to_string('file_processor/file_detail_partial.html', {
         'conversion': conversion,
-        'images': images
+        'images': images,
+        'latest_analysis_time': latest_analysis_time
     }, request=request)
     
     return JsonResponse({'html': html})

@@ -17,6 +17,11 @@
                 </svg>
             </a>
             {% endif %}
+            {% if latest_analysis_time %}
+            <span class="ml-3 text-sm text-gray-500">
+                Last analyzed: {{ latest_analysis_time|date:"Y-m-d H:i" }}
+            </span>
+            {% endif %}
         </div>
         <div class="flex space-x-2">
             <button id="analyze-all-btn" onclick="analyzeAllFiles({{ conversion.id }})" class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md shadow-sm text-white bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
