@@ -25,4 +25,5 @@ urlpatterns = [
     
     # Result Detail URLs
     path('result/detail/<int:pk>/', views.result_detail, name='result_detail'),
+    path('result/rate/<int:pk>/', views.rate_analysis, name='rate_analysis'),
 ]

@@ -6,8 +6,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Result Detail - {{ analysis.get_analysis_type_display }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
-<body class="bg-gray-50">
+<body class="bg-gray-50" x-data="{ 
+    activeTab: 'result',
+    hasThinkContent: {{ think_content|yesno:'true,false' }},
+    hasPromptContent: {{ prompt_content|yesno:'true,false' }},
+    switchTab(tabName) {
+        this.activeTab = tabName;
+    }
+}">
     <div class="min-h-screen">
         <!-- Header -->
         <header class="bg-white shadow-sm border-b">
@@ -23,11 +31,110 @@
                             {% endif %}
                         </span>
                     </div>
-                    <button onclick="window.close()" class="text-gray-500 hover:text-gray-700">
-                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    </button>
+                    
+                    <!-- 评分组件 -->
+                    <div class="flex items-center space-x-4">
+                        <!-- 星级评分 -->
+                        <div x-data="{ 
+                            currentRating: {{ analysis.rate|default:0 }}, 
+                            hoverRating: 0,
+                            isSubmitting: false,
+                            showThankYou: false,
+                            
+                            setRating(rating) {
+                                this.currentRating = rating;
+                                this.submitRating(rating);
+                            },
+                            
+                            submitRating(rating) {
+                                if (this.isSubmitting) return;
+                                
+                                this.isSubmitting = true;
+                                fetch(`/result/rate/{{ analysis.pk }}/`, {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                                    },
+                                    body: JSON.stringify({
+                                        rating: rating
+                                    })
+                                })
+                                .then(response => response.json())
+                                .then(data => {
+                                    if (data.status === 'success') {
+                                        this.showThankYou = true;
+                                        setTimeout(() => {
+                                            this.showThankYou = false;
+                                        }, 3000);
+                                    } else {
+                                        alert('Error: ' + (data.error || 'Unknown error'));
+                                    }
+                                })
+                                .catch(error => {
+                                    console.error('Error:', error);
+                                    alert('Failed to submit rating');
+                                })
+                                .finally(() => {
+                                    this.isSubmitting = false;
+                                });
+                            }
+                        }" class="flex items-center space-x-2">
+                            <!-- CSRF Token -->
+                            <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+                            
+                            <!-- 星星容器 -->
+                            <div class="flex items-center space-x-1">
+                                <template x-for="i in 5" :key="i">
+                                    <button @click="setRating(i)" 
+                                            @mouseenter="hoverRating = i" 
+                                            @mouseleave="hoverRating = 0"
+                                            :disabled="isSubmitting"
+                                            class="text-2xl transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded"
+                                            :class="isSubmitting ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:scale-110 transform'">
+                                        <!-- 实心星星 - 已评分或悬停状态 -->
+                                        <svg x-show="i <= (hoverRating || currentRating)" 
+                                             class="w-6 h-6 text-yellow-400" 
+                                             fill="currentColor" viewBox="0 0 20 20">
+                                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                                        </svg>
+                                        <!-- 空心星星 - 未评分状态 -->
+                                        <svg x-show="i > (hoverRating || currentRating)" 
+                                             class="w-6 h-6 text-gray-300" 
+                                             fill="currentColor" viewBox="0 0 20 20">
+                                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                                        </svg>
+                                    </button>
+                                </template>
+                            </div>
+                            
+                            <!-- 评分文本 -->
+                            <div class="text-sm text-gray-600">
+                                <span x-show="currentRating === 0">Click to rate</span>
+                                <span x-show="currentRating > 0 && !showThankYou">
+                                    <span x-text="currentRating"></span> star(s)
+                                </span>
+                                <span x-show="showThankYou" class="text-green-600 font-medium">
+                                    Thank you for your rating!
+                                </span>
+                            </div>
+                            
+                            <!-- 加载指示器 -->
+                            <div x-show="isSubmitting" class="flex items-center">
+                                <svg class="animate-spin h-4 w-4 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                            </div>
+                        </div>
+                        
+                        <!-- 关闭按钮 -->
+                        <button onclick="window.close()" class="text-gray-500 hover:text-gray-700">
+                            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
                 </div>
             </div>
         </header>
@@ -37,15 +144,26 @@
             <!-- Tabs -->
             <div class="border-b border-gray-200">
                 <nav class="-mb-px flex space-x-8">
-                    <button onclick="switchTab('result')" id="result-tab" class="tab-button py-2 px-1 border-b-2 border-indigo-500 font-medium text-sm text-indigo-600">
+                    <button @click="switchTab('result')" 
+                            :class="activeTab === 'result' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+                            class="py-2 px-1 border-b-2 font-medium text-sm transition-all duration-200 ease-in-out">
                         Result
                     </button>
                     {% if think_content %}
-                    <button onclick="switchTab('think')" id="think-tab" class="tab-button py-2 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                    <button @click="switchTab('think')" 
+                            :class="activeTab === 'think' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+                            class="py-2 px-1 border-b-2 font-medium text-sm transition-all duration-200 ease-in-out">
                         Think
                     </button>
                     {% endif %}
-                    <button onclick="switchTab('log')" id="log-tab" class="tab-button py-2 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                    <button @click="switchTab('prompt')" 
+                            :class="activeTab === 'prompt' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+                            class="py-2 px-1 border-b-2 font-medium text-sm transition-all duration-200 ease-in-out">
+                        Prompt
+                    </button>
+                    <button @click="switchTab('log')" 
+                            :class="activeTab === 'log' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+                            class="py-2 px-1 border-b-2 font-medium text-sm transition-all duration-200 ease-in-out">
                         Log
                     </button>
                 </nav>
@@ -54,7 +172,13 @@
             <!-- Tab Content -->
             <div class="mt-6">
                 <!-- Result Tab -->
-                <div id="result-content" class="tab-content">
+                <div x-show="activeTab === 'result'" 
+                     x-transition:enter="transition ease-out duration-200"
+                     x-transition:enter-start="opacity-0 transform translate-y-4"
+                     x-transition:enter-end="opacity-100 transform translate-y-0"
+                     x-transition:leave="transition ease-in duration-150"
+                     x-transition:leave-start="opacity-100"
+                     x-transition:leave-end="opacity-0">
                     <div class="bg-white rounded-lg shadow-sm p-6">
                         <div class="prose prose-sm max-w-none w-full">
                             <div class="markdown-content">
@@ -66,7 +190,13 @@
 
                 <!-- Think Tab -->
                 {% if think_content %}
-                <div id="think-content" class="tab-content hidden">
+                <div x-show="activeTab === 'think'" 
+                     x-transition:enter="transition ease-out duration-200"
+                     x-transition:enter-start="opacity-0 transform translate-y-4"
+                     x-transition:enter-end="opacity-100 transform translate-y-0"
+                     x-transition:leave="transition ease-in duration-150"
+                     x-transition:leave-start="opacity-100"
+                     x-transition:leave-end="opacity-0">
                     <div class="bg-white rounded-lg shadow-sm p-6">
                         <div class="prose prose-sm max-w-none w-full">
                             <div class="markdown-content">
@@ -77,8 +207,42 @@
                 </div>
                 {% endif %}
 
+                <!-- Prompt Tab -->
+                <div x-show="activeTab === 'prompt'" 
+                     x-transition:enter="transition ease-out duration-200"
+                     x-transition:enter-start="opacity-0 transform translate-y-4"
+                     x-transition:enter-end="opacity-100 transform translate-y-0"
+                     x-transition:leave="transition ease-in duration-150"
+                     x-transition:leave-start="opacity-100"
+                     x-transition:leave-end="opacity-0">
+                    <div class="bg-white rounded-lg shadow-sm p-6">
+                        <div class="mb-4">
+                            <h3 class="text-lg font-medium text-gray-900 mb-2">Analysis Prompt</h3>
+                            <p class="text-sm text-gray-600">The prompt used for this analysis</p>
+                        </div>
+                        {% if prompt_content %}
+                            <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                                <pre class="whitespace-pre-wrap text-sm text-gray-800 font-mono leading-relaxed">{{ prompt_content }}</pre>
+                            </div>
+                        {% else %}
+                            <div class="text-gray-500 text-center py-8">
+                                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                                <p class="mt-2">No prompt available</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+
                 <!-- Log Tab -->
-                <div id="log-content" class="tab-content hidden">
+                <div x-show="activeTab === 'log'" 
+                     x-transition:enter="transition ease-out duration-200"
+                     x-transition:enter-start="opacity-0 transform translate-y-4"
+                     x-transition:enter-end="opacity-100 transform translate-y-0"
+                     x-transition:leave="transition ease-in duration-150"
+                     x-transition:leave-start="opacity-100"
+                     x-transition:leave-end="opacity-0">
                     <div class="bg-white rounded-lg shadow-sm p-6">
                         <div class="mb-4">
                             <h3 class="text-lg font-medium text-gray-900 mb-2">Analysis Progress Log</h3>
@@ -100,28 +264,7 @@
         </main>
     </div>
 
-    <script>
-        function switchTab(tabName) {
-            // Hide all tab contents
-            document.querySelectorAll('.tab-content').forEach(content => {
-                content.classList.add('hidden');
-            });
-
-            // Remove active styling from all tabs
-            document.querySelectorAll('.tab-button').forEach(button => {
-                button.classList.remove('border-indigo-500', 'text-indigo-600');
-                button.classList.add('border-transparent', 'text-gray-500');
-            });
-
-            // Show selected tab content
-            document.getElementById(tabName + '-content').classList.remove('hidden');
-
-            // Add active styling to selected tab
-            const activeTab = document.getElementById(tabName + '-tab');
-            activeTab.classList.remove('border-transparent', 'text-gray-500');
-            activeTab.classList.add('border-indigo-500', 'text-indigo-600');
-        }
-    </script>
+    <!-- Alpine.js handles tab switching, no need for custom JavaScript -->
 
     <style>
         body, html {

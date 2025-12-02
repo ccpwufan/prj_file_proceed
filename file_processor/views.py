@@ -131,7 +131,7 @@ def analysis_list(request):
     
     # 处理排序参数
     sort_by = request.GET.get('sort', '-created_at')
-    valid_sort_fields = ['created_at', '-created_at', 'status', '-status', 'analysis_type', '-analysis_type', 'user__username', '-user__username']
+    valid_sort_fields = ['created_at', '-created_at', 'status', '-status', 'analysis_type', '-analysis_type', 'user__username', '-user__username', 'rate', '-rate', 'file_header__comments', '-file_header__comments']
     
     # 检查是否是按文件名排序
     if sort_by == 'file_name' or sort_by == '-file_name':
@@ -501,6 +501,41 @@ def convert_pdf_to_images(pdf_conversion):
         print(f"Conversion failed: {str(e)}")
 
 @login_required
+def rate_analysis(request, pk):
+    """处理分析记录评分"""
+    if request.method == 'POST' and request.headers.get('Content-Type') == 'application/json':
+        try:
+            import json
+            data = json.loads(request.body)
+            rating = data.get('rating')
+            
+            # 验证评分范围
+            if not rating or not 1 <= rating <= 5:
+                return JsonResponse({'error': 'Rating must be between 1 and 5'}, status=400)
+            
+            # 获取分析记录
+            analysis = get_object_or_404(FileAnalysis, pk=pk)
+            
+            # 检查权限
+            if not request.user.is_superuser and analysis.user != request.user:
+                return JsonResponse({'error': 'Permission denied'}, status=403)
+            
+            # 保存评分
+            analysis.rate = rating
+            analysis.save()
+            
+            return JsonResponse({
+                'status': 'success',
+                'rating': rating,
+                'message': 'Thank you for your rating!'
+            })
+            
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    
+    return JsonResponse({'error': 'Invalid request'}, status=400)
+
+@login_required
 def result_detail(request, pk):
     """Display result data with tabs for Result and Think sections"""
     analysis = get_object_or_404(FileAnalysis, pk=pk)
@@ -535,6 +570,7 @@ def result_detail(request, pk):
         'result_content': result_content,
         'think_content': think_content,
         'log_content': analysis.log or '',
+        'prompt_content': analysis.prompt or '',
     }
     
     return render(request, 'file_processor/result_detail.html', context)
