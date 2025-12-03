@@ -19,7 +19,6 @@
 
 ### 创建模板目录结构
 - [ ] 创建file_processor/templates/file_processor/video目录
-- [ ] 创建video/base.html基础模板（可继承主base.html）
 - [ ] 创建必要的HTML模板文件
 
 ---
@@ -36,7 +35,7 @@
     ```python
     # 字段包括：video_file, user, analysis_type, created_at, completed_at, status, result_summary
     ```
-  - [ ] 实现DetectionFrame模型（存储检测结果帧信息）
+  - [ ] 实现VideoDetectionFrame模型（存储检测结果帧信息）
     ```python
     # 字段包括：video_analysis, frame_number, frame_image, detection_data, timestamp
     ```
@@ -72,7 +71,6 @@
   - [ ] 配置video相关页面的URL路由
   ```python
   urlpatterns = [
-      path('home/', views.video_home, name='home'),
       path('upload/', views.video_upload, name='upload'),
       path('camera/', views.camera_detection, name='camera'),
       path('results/<int:analysis_id>/', views.show_results, name='results'),
@@ -139,6 +137,8 @@
 ## 阶段五：视图函数开发
 
 ### 视图函数实现
+- [ ] 在file_processor/video/views.py中实现视图函数
+  - [ ] 实现video_home视图（主页，选择视频来源）
 - [ ] 在file_processor/video/views.py中实现视图函数
   - [ ] 实现video_home视图（主页，选择视频来源）
   - [ ] 实现video_upload视图（视频上传和处理）
