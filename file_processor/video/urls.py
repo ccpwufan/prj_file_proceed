@@ -13,4 +13,6 @@ urlpatterns = [
     path('video_analysis_history/', views.video_analysis_history, name='video_analysis_history'),
     path('delete-video/<int:video_file_id>/', views.delete_video_file, name='delete_video'),
     path('delete-analysis/<int:analysis_id>/', views.delete_analysis, name='delete_analysis'),
+    path('generate-thumbnail/<int:video_file_id>/', views.generate_video_thumbnail, name='generate_thumbnail'),
+    path('generate-all-thumbnails/', views.generate_all_thumbnails, name='generate_all_thumbnails'),
 ]

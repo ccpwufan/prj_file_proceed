@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Delete Function</title>
+</head>
+<body>
+    <h1>Test Video Delete Function</h1>
+    <button onclick="testDelete()">Test Delete Video</button>
+    <div id="result"></div>
+
+    <script>
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        function testDelete() {
+            const videoId = 1; // 假设存在ID为1的视频
+            const resultDiv = document.getElementById('result');
+            
+            fetch(`/video/delete-video/${videoId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'Content-Type': 'application/json',
+                },
+            })
+            .then(response => {
+                resultDiv.innerHTML = `Status: ${response.status}<br>`;
+                return response.text();
+            })
+            .then(data => {
+                resultDiv.innerHTML += `Response: ${data}<br>`;
+            })
+            .catch(error => {
+                resultDiv.innerHTML = `Error: ${error}<br>`;
+            });
+        }
+    </script>
+</body>
+</html>

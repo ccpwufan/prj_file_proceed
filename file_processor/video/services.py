@@ -7,6 +7,58 @@ from django.utils import timezone
 from .models import VideoFile, VideoAnalysis, VideoDetectionFrame
 
 
+def generate_thumbnail(video_path):
+    """Generate thumbnail from video file path
+    
+    Args:
+        video_path (str): Path to video file
+        
+    Returns:
+        str: Relative path to generated thumbnail, or None if failed
+    """
+    try:
+        cap = cv2.VideoCapture(video_path)
+        
+        if not cap.isOpened():
+            print(f"Error: Cannot open video file {video_path}")
+            return None
+        
+        # Get frame at 1 second or first frame
+        fps = cap.get(cv2.CAP_PROP_FPS)
+        frame_number = int(fps) if fps > 0 else 0
+        
+        cap.set(cv2.CAP_PROP_POS_FRAMES, frame_number)
+        ret, frame = cap.read()
+        
+        if ret:
+            # Resize frame to thumbnail size
+            thumbnail = cv2.resize(frame, (320, 240))
+            
+            # Create thumbnail filename
+            import hashlib
+            video_hash = hashlib.md5(video_path.encode()).hexdigest()[:8]
+            thumbnail_filename = f"thumb_{video_hash}.jpg"
+            
+            # Save thumbnail
+            thumbnail_dir = os.path.join(settings.MEDIA_ROOT, 'thumbnails')
+            os.makedirs(thumbnail_dir, exist_ok=True)
+            thumbnail_path = os.path.join(thumbnail_dir, thumbnail_filename)
+            
+            cv2.imwrite(thumbnail_path, thumbnail)
+            
+            # Return relative path from media root
+            return f"thumbnails/{thumbnail_filename}"
+        else:
+            print(f"Error: Cannot read frame from video {video_path}")
+            return None
+        
+        cap.release()
+        
+    except Exception as e:
+        print(f"Error generating thumbnail: {e}")
+        return None
+
+
 class VideoProcessingService:
     """Service for processing video files and performing analysis"""
     

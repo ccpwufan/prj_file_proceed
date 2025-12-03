@@ -125,6 +125,11 @@ function videoUpload() {
             const file = event.dataTransfer.files[0];
             if (file) {
                 this.validateAndSetFile(file);
+                // 关键修复：将文件设置到文件输入框
+                const fileInput = document.querySelector('input[type="file"]');
+                const dataTransfer = new DataTransfer();
+                dataTransfer.items.add(file);
+                fileInput.files = dataTransfer.files;
             }
         },
         
