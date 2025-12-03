@@ -38,7 +38,7 @@ def register(request):
             user = form.save()
             login(request, user)
             messages.success(request, 'Registration successful!')
-            return redirect('home')
+            return redirect('file:home')
     else:
         form = CustomUserCreationForm()
     return render(request, 'registration/register.html', {'form': form})
@@ -58,21 +58,21 @@ def upload_file(request):
             thread = threading.Thread(target=convert_pdf_to_images, args=(file_header,))
             thread.start()
             messages.success(request, 'PDF uploaded and conversion started!')
-            return redirect(f"{reverse('file_list')}?selected_file={file_header.pk}")
+            return redirect(f"{reverse('file:file_list')}?selected_file={file_header.pk}")
     else:
         form = PDFUploadForm()
     
-    return render(request, 'file_processor/upload.html', {'form': form})
+    return render(request, 'file_processor/file/upload.html', {'form': form})
 
 @login_required
 def file_detail(request, pk):
     conversion = get_object_or_404(FileHeader, pk=pk)
     if not request.user.is_superuser and conversion.user != request.user:
         messages.error(request, 'You can only view your own conversions.')
-        return redirect('file_list')
+        return redirect('file:file_list')
     
     images = conversion.images.all()
-    return render(request, 'file_processor/file_detail.html', {
+    return render(request, 'file_processor/file/file_detail.html', {
         'conversion': conversion,
         'images': images
     })
@@ -94,7 +94,7 @@ def file_list(request):
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     
-    return render(request, 'file_processor/file_list.html', {
+    return render(request, 'file_processor/file/file_list.html', {
         'page_obj': page_obj,
         'search_query': search_query
     })
@@ -115,7 +115,7 @@ def file_detail_partial(request, pk):
     latest_analysis_time = latest_analysis.created_at if latest_analysis else None
     
     # 渲染局部模板
-    html = render_to_string('file_processor/file_detail_partial.html', {
+    html = render_to_string('file_processor/file/file_detail_partial.html', {
         'conversion': conversion,
         'images': images,
         'latest_analysis_time': latest_analysis_time
@@ -164,7 +164,7 @@ def analysis_list(request):
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     
-    return render(request, 'file_processor/analysis_list.html', {
+    return render(request, 'file_processor/file/analysis_list.html', {
         'page_obj': page_obj,
         'current_sort': sort_by
     })
@@ -547,7 +547,7 @@ def result_detail(request, pk):
     
     # Check permission
     if not request.user.is_superuser and analysis.user != request.user:
-        return redirect('login')
+        return redirect('file:login')
     
     result_data = analysis.result_data or ''
     
@@ -578,4 +578,32 @@ def result_detail(request, pk):
         'prompt_content': analysis.prompt or '',
     }
     
-    return render(request, 'file_processor/result_detail.html', context)
+    return render(request, 'file_processor/file/result_detail.html', context)
+
+@login_required
+def test_pdf_access(request, pk):
+    """Test PDF file access"""
+    from django.http import HttpResponse, Http404
+    import mimetypes
+    
+    file_header = get_object_or_404(FileHeader, pk=pk)
+    
+    # Check permission
+    if not request.user.is_superuser and file_header.user != request.user:
+        raise Http404("Permission denied")
+    
+    file_path = file_header.file_header_filename.path
+    
+    if not os.path.exists(file_path):
+        raise Http404("File not found")
+    
+    # Get MIME type
+    mime_type, _ = mimetypes.guess_type(file_path)
+    if mime_type is None:
+        mime_type = 'application/octet-stream'
+    
+    # Serve file
+    with open(file_path, 'rb') as f:
+        response = HttpResponse(f.read(), content_type=mime_type)
+        response['Content-Disposition'] = f'inline; filename="{os.path.basename(file_path)}"'
+        return response

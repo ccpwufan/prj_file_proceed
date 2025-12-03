@@ -105,7 +105,7 @@
                                 </span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                <a href="{% url 'result_detail' analysis.pk %}" class="text-blue-600 hover:text-blue-900" title="View Details" target="_blank">
+                                <a href="{% url 'file:result_detail' analysis.pk %}" class="text-blue-600 hover:text-blue-900" title="View Details" target="_blank">
                                     <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
@@ -113,12 +113,12 @@
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
                                 {% if analysis.analysis_type == 'header' and analysis.file_header %}
-                                    <a href="{% url 'file_list' %}?selected_file={{ analysis.file_header.pk }}" 
+                                    <a href="{% url 'file:file_list' %}?selected_file={{ analysis.file_header.pk }}" 
                                        class="text-blue-600 hover:text-blue-900 text-sm font-medium hover:underline">
                                         {{ analysis.file_header.file_header_filename.name|default:"Untitled File" }}
                                     </a>
                                 {% elif analysis.analysis_type == 'single' and analysis.file_detail %}
-                                    <a href="{% url 'file_list' %}?selected_file={{ analysis.file_detail.file_header.pk }}" 
+                                    <a href="{% url 'file:file_list' %}?selected_file={{ analysis.file_detail.file_header.pk }}" 
                                        class="text-blue-600 hover:text-blue-900 text-sm font-medium hover:underline">
                                         {{ analysis.file_detail.file_header.file_header_filename.name|default:"Untitled File" }}
                                         <span class="text-xs text-gray-500 ml-1">(Page {{ analysis.file_detail.page_number }})</span>

@@ -18,22 +18,27 @@ from dotenv import load_dotenv
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Load environment variables from .env file
-# 优先加载.env.docker（Docker环境），否则加载.env（本地环境）
-if os.path.exists(BASE_DIR / '.env.docker'):
-    load_dotenv(BASE_DIR / '.env.docker')
-else:
-    load_dotenv(BASE_DIR / '.env')
+# 本地开发：只加载.env，忽略.env.docker
+# 如果要在Docker中运行，请手动注释掉下面这行，并启用Docker配置
+load_dotenv(BASE_DIR / '.env')
+# Docker环境配置（需要时启用）
+# if os.path.exists(BASE_DIR / '.env.docker'):
+#     load_dotenv(BASE_DIR / '.env.docker', override=True)
 
 # 检测是否在Docker环境中
 DOCKER_ENV = os.getenv('DOCKER_ENV', 'False').lower() == 'true'
 
 # 1. 媒体文件存储路径（上传的 PDF + 生成的 PNG 都存在这里）
-if DOCKER_ENV:
-    # Docker环境中的路径
-    MEDIA_ROOT = '/app/media'  # 容器内路径，挂载到本地media目录
-else:
-    # 本地开发环境路径
-    MEDIA_ROOT = os.path.join(BASE_DIR, 'media')  # 实际路径：项目根目录/media/
+# 临时强制使用本地路径，因为图片显示问题
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')  # 实际路径：项目根目录/media/
+
+# 如果确实在Docker环境中，取消注释下面的行并注释上面的行
+# if DOCKER_ENV:
+#     # Docker环境中的路径
+#     MEDIA_ROOT = '/app/media'  # 容器内路径，挂载到本地media目录
+# else:
+#     # 本地开发环境路径
+#     MEDIA_ROOT = os.path.join(BASE_DIR, 'media')  # 实际路径：项目根目录/media/
 
 MEDIA_URL = '/media/'  # 访问 URL：http://127.0.0.1:8000/media/
 

@@ -69,17 +69,17 @@
                 <div class="flex justify-between h-16">
                     <div class="flex">
                         <div class="flex-shrink-0 flex items-center">
-                            <a href="{% url 'home' %}" class="text-xl font-bold text-gray-900">File Processor</a>
+                            <a href="{% url 'file:home' %}" class="text-xl font-bold text-gray-900">File Processor</a>
                         </div>
                         {% if user.is_authenticated %}
                         <div class="hidden sm:ml-6 sm:flex sm:space-x-8">
-                            <a href="{% url 'upload_file' %}" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                            <a href="{% url 'file:upload_file' %}" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
                                 Upload File
                             </a>
-                            <a href="{% url 'file_list' %}" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                            <a href="{% url 'file:file_list' %}" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
                                 My Files
                             </a>
-                            <a href="{% url 'analysis_list' %}" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                            <a href="{% url 'file:analysis_list' %}" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
                                 My Analysis
                             </a>
                         </div>
@@ -89,17 +89,17 @@
                     <div class="flex items-center">
                         {% if user.is_authenticated %}
                             <span class="text-gray-700 mr-4">Hello, {{ user.username }}</span>
-                            <form method="post" action="{% url 'logout' %}" class="inline">
+                            <form method="post" action="{% url 'file:logout' %}" class="inline">
                                 {% csrf_token %}
                                 <button type="submit" class="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-md text-sm font-medium">
                                     Logout
                                 </button>
                             </form>
                         {% else %}
-                            <a href="{% url 'login' %}" class="text-gray-500 hover:text-gray-700 px-3 py-2 rounded-md text-sm font-medium">
+                            <a href="{% url 'file:login' %}" class="text-gray-500 hover:text-gray-700 px-3 py-2 rounded-md text-sm font-medium">
                                 Login
                             </a>
-                            <a href="{% url 'register' %}" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-md text-sm font-medium ml-2">
+                            <a href="{% url 'file:register' %}" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-md text-sm font-medium ml-2">
                                 Register
                             </a>
                         {% endif %}

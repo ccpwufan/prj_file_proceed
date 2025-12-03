@@ -18,7 +18,7 @@
                         </div>
                         <h3 class="text-xl font-semibold text-gray-900 mb-2">Upload Files</h3>
                         <p class="text-gray-600 mb-6">Upload files and ready for AI Analysis</p>
-                        <a href="{% url 'upload_file' %}" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        <a href="{% url 'file:upload_file' %}" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                             New Upload
                         </a>
                     </div>
@@ -34,7 +34,7 @@
                         </div>
                         <h3 class="text-xl font-semibold text-gray-900 mb-2">File Analysis History</h3>
                         <p class="text-gray-600 mb-6">See how AI analysis the files</p>
-                        <a href="{% url 'analysis_list' %}" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                        <a href="{% url 'file:analysis_list' %}" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
                             View My Analysis
                         </a>
                     </div>
@@ -60,10 +60,10 @@
             <div class="max-w-md mx-auto">
                 <p class="text-gray-600 mb-8">Please login or register to access the file processing features.</p>
                 <div class="space-x-4">
-                    <a href="{% url 'login' %}" class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
+                    <a href="{% url 'file:login' %}" class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
                         Login
                     </a>
-                    <a href="{% url 'register' %}" class="inline-flex items-center px-6 py-3 border border-gray-300 text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                    <a href="{% url 'file:register' %}" class="inline-flex items-center px-6 py-3 border border-gray-300 text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
                         Register
                     </a>
                 </div>
