@@ -12,4 +12,7 @@ urlpatterns = [
     path('auth/register/', views.register, name='register'),
 
     path('', include('file_processor.file.urls')),
+    
+    # Video processing URLs
+    path('video/', include('file_processor.video.urls')),
 ]

@@ -9,7 +9,16 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 # 设置工作目录
 WORKDIR /app
 
-# 安装系统依赖（特别是PyMuPDF和Pillow需要的库）
+# 配置国内镜像源
+# 1. 替换apt源为阿里云源
+RUN sed -i 's/deb.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list.d/debian.sources && \
+    sed -i 's/security.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list.d/debian.sources
+
+# 2. 配置pip使用清华源
+RUN pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple && \
+    pip config set install.trusted-host pypi.tuna.tsinghua.edu.cn
+
+# 安装系统依赖（最基本的）
 RUN apt-get update && apt-get install -y \
     build-essential \
     libgl1-mesa-glx \

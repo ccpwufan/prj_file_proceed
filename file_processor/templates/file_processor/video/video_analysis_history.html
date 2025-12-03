@@ -1,0 +1,459 @@
+{% extends 'file_processor/base.html' %}
+
+{% block title %}Video Analysis - File Processor{% endblock %}
+
+{% block content %}
+<div x-data="videoAnalysis()" x-init="init()">
+    <!-- Search and Filter -->
+    <div class="bg-white shadow rounded-lg mb-6">
+        <div class="px-4 py-5 sm:p-6">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
+                <h3 class="text-lg leading-6 font-medium text-gray-900">Video Analysis</h3>
+                <div class="mt-4 md:mt-0 flex space-x-3">
+                    <button @click="refreshData()" 
+                            class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-medium">
+                        Refresh
+                    </button>
+                    <button @click="exportHistory()" 
+                            class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md text-sm font-medium">
+                        Export Records
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Search Bar -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="md:col-span-2">
+                    <div class="relative">
+                        <input type="text" 
+                               x-model="searchQuery"
+                               @input="filterResults()"
+                               placeholder="Search video filenames..." 
+                               class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+                
+                <div>
+                    <select x-model="filterStatus" @change="filterResults()" 
+                            class="w-full border border-gray-300 rounded-md py-2 px-3 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">All Status</option>
+                        <option value="uploaded">Uploaded</option>
+                        <option value="processing">Processing</option>
+                        <option value="processed">Processed</option>
+                        <option value="failed">Failed</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <select x-model="filterAnalysisType" @change="filterResults()" 
+                            class="w-full border border-gray-300 rounded-md py-2 px-3 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">All Analysis Types</option>
+                        <option value="phone_detection">Phone Detection</option>
+                        <option value="object_detection">Object Detection</option>
+                        <option value="custom">Custom Analysis</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+        <div class="bg-white shadow rounded-lg p-6">
+            <div class="flex items-center">
+                <div class="flex-shrink-0 bg-blue-100 rounded-full p-3">
+                    <svg class="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                    </svg>
+                </div>
+                <div class="ml-4">
+                    <div class="text-2xl font-bold text-gray-900" x-text="statistics.totalVideos"></div>
+                    <div class="text-sm text-gray-500">Total Videos</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white shadow rounded-lg p-6">
+            <div class="flex items-center">
+                <div class="flex-shrink-0 bg-green-100 rounded-full p-3">
+                    <svg class="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+                <div class="ml-4">
+                    <div class="text-2xl font-bold text-gray-900" x-text="statistics.completedAnalyses"></div>
+                    <div class="text-sm text-gray-500">Completed Analyses</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white shadow rounded-lg p-6">
+            <div class="flex items-center">
+                <div class="flex-shrink-0 bg-yellow-100 rounded-full p-3">
+                    <svg class="h-6 w-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+                <div class="ml-4">
+                    <div class="text-2xl font-bold text-gray-900" x-text="statistics.processingAnalyses"></div>
+                    <div class="text-sm text-gray-500">Processing</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white shadow rounded-lg p-6">
+            <div class="flex items-center">
+                <div class="flex-shrink-0 bg-red-100 rounded-full p-3">
+                    <svg class="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"></path>
+                    </svg>
+                </div>
+                <div class="ml-4">
+                    <div class="text-2xl font-bold text-gray-900" x-text="statistics.totalDetections"></div>
+                    <div class="text-sm text-gray-500">Total Detections</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results Table -->
+    <div class="bg-white shadow rounded-lg">
+        <div class="px-4 py-5 sm:p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h4 class="text-md font-medium text-gray-900">Analysis Records</h4>
+                <div class="text-sm text-gray-500">
+                    Showing <span x-text="filteredAnalyses.length"></span> / <span x-text="totalAnalyses"></span> records
+                </div>
+            </div>
+            
+            <!-- Table -->
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                                @click="sortBy('video_file')">
+                                Video File
+                                <span x-show="sortField === 'video_file'" x-text="sortOrder === 'asc' ? '↑' : '↓'"></span>
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                                @click="sortBy('analysis_type')">
+                                Analysis Type
+                                <span x-show="sortField === 'analysis_type'" x-text="sortOrder === 'asc' ? '↑' : '↓'"></span>
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                                @click="sortBy('created_at')">
+                                Created Time
+                                <span x-show="sortField === 'created_at'" x-text="sortOrder === 'asc' ? '↑' : '↓'"></span>
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Status
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Detection Results
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Actions
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        <template x-for="analysis in paginatedAnalyses" :key="analysis.id">
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="flex items-center">
+                                        <div class="flex-shrink-0 h-10 w-10">
+                                            <img x-show="analysis.video_file.thumbnail" 
+                                                 :src="analysis.video_file.thumbnail" 
+                                                 class="h-10 w-10 rounded-full object-cover">
+                                            <div x-show="!analysis.video_file.thumbnail" 
+                                                 class="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center">
+                                                <svg class="h-6 w-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                                                </svg>
+                                            </div>
+                                        </div>
+                                        <div class="ml-4">
+                                            <div class="text-sm font-medium text-gray-900" x-text="analysis.video_file.original_filename"></div>
+                                            <div class="text-sm text-gray-500" x-text="formatFileSize(analysis.video_file.file_size)"></div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800"
+                                          x-text="getAnalysisTypeText(analysis.analysis_type)"></span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" x-text="formatDate(analysis.created_at)"></td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full"
+                                          :class="getStatusClass(analysis.status)"
+                                          x-text="getStatusText(analysis.status)"></span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    <div x-show="analysis.status === 'completed'">
+                                        <div x-text="`${analysis.total_detections} detections`"></div>
+                                        <div class="text-xs text-gray-400" x-text="`${analysis.total_frames_processed} frames processed`"></div>
+                                    </div>
+                                    <div x-show="analysis.status !== 'completed'" class="text-gray-400">
+                                        -
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                    <button @click="viewResults(analysis.id)" 
+                                            :disabled="analysis.status !== 'completed'"
+                                            class="text-blue-600 hover:text-blue-900 disabled:text-gray-400 disabled:cursor-not-allowed mr-3">
+                                        View Results
+                                    </button>
+                                    <button @click="deleteAnalysis(analysis.id)" 
+                                            class="text-red-600 hover:text-red-900">
+                                        Delete
+                                    </button>
+                                </td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Pagination -->
+            <div class="mt-4 flex items-center justify-between">
+                <div class="text-sm text-gray-700">
+                    Showing <span x-text="(currentPage - 1) * pageSize + 1"></span> to 
+                    <span x-text="Math.min(currentPage * pageSize, filteredAnalyses.length)"></span> of 
+                    <span x-text="filteredAnalyses.length"></span> records
+                </div>
+                <div class="flex space-x-2">
+                    <button @click="previousPage()" 
+                            :disabled="currentPage <= 1"
+                            class="px-3 py-1 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                        Previous
+                    </button>
+                    <span class="px-3 py-1 text-sm text-gray-700">
+                        Page <span x-text="currentPage"></span> / <span x-text="totalPages"></span>
+                    </span>
+                    <button @click="nextPage()" 
+                            :disabled="currentPage >= totalPages"
+                            class="px-3 py-1 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                        Next
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function videoAnalysis() {
+    return {
+        analyses: {{ analyses|safe }},
+        filteredAnalyses: [],
+        searchQuery: '',
+        filterStatus: '',
+        filterAnalysisType: '',
+        sortField: 'created_at',
+        sortOrder: 'desc',
+        currentPage: 1,
+        pageSize: 10,
+        
+        init() {
+            this.filterResults();
+            this.calculateStatistics();
+        },
+        
+        get totalAnalyses() {
+            return this.analyses.length;
+        },
+        
+        get totalPages() {
+            return Math.ceil(this.filteredAnalyses.length / this.pageSize);
+        },
+        
+        get paginatedAnalyses() {
+            const start = (this.currentPage - 1) * this.pageSize;
+            const end = start + this.pageSize;
+            return this.filteredAnalyses.slice(start, end);
+        },
+        
+        statistics: {
+            get totalVideos() {
+                return new Set(this.analyses.map(a => a.video_file.id)).size;
+            },
+            get completedAnalyses() {
+                return this.analyses.filter(a => a.status === 'completed').length;
+            },
+            get processingAnalyses() {
+                return this.analyses.filter(a => a.status === 'processing').length;
+            },
+            get totalDetections() {
+                return this.analyses.reduce((total, a) => total + (a.total_detections || 0), 0);
+            }
+        },
+        
+        calculateStatistics() {
+            // Force reactivity update
+            this.statistics = { ...this.statistics };
+        },
+        
+        filterResults() {
+            let filtered = [...this.analyses];
+            
+            // Search query
+            if (this.searchQuery) {
+                const query = this.searchQuery.toLowerCase();
+                filtered = filtered.filter(analysis => 
+                    analysis.video_file.original_filename.toLowerCase().includes(query)
+                );
+            }
+            
+            // Status filter
+            if (this.filterStatus) {
+                filtered = filtered.filter(analysis => analysis.status === this.filterStatus);
+            }
+            
+            // Analysis type filter
+            if (this.filterAnalysisType) {
+                filtered = filtered.filter(analysis => analysis.analysis_type === this.filterAnalysisType);
+            }
+            
+            // Sort
+            filtered.sort((a, b) => {
+                let aVal, bVal;
+                
+                switch (this.sortField) {
+                    case 'video_file':
+                        aVal = a.video_file.original_filename;
+                        bVal = b.video_file.original_filename;
+                        break;
+                    case 'analysis_type':
+                        aVal = a.analysis_type;
+                        bVal = b.analysis_type;
+                        break;
+                    case 'created_at':
+                        aVal = new Date(a.created_at);
+                        bVal = new Date(b.created_at);
+                        break;
+                    default:
+                        return 0;
+                }
+                
+                if (this.sortOrder === 'asc') {
+                    return aVal > bVal ? 1 : -1;
+                } else {
+                    return aVal < bVal ? 1 : -1;
+                }
+            });
+            
+            this.filteredAnalyses = filtered;
+            this.currentPage = 1; // Reset to first page
+        },
+        
+        sortBy(field) {
+            if (this.sortField === field) {
+                this.sortOrder = this.sortOrder === 'asc' ? 'desc' : 'asc';
+            } else {
+                this.sortField = field;
+                this.sortOrder = 'asc';
+            }
+            this.filterResults();
+        },
+        
+        previousPage() {
+            if (this.currentPage > 1) {
+                this.currentPage--;
+            }
+        },
+        
+        nextPage() {
+            if (this.currentPage < this.totalPages) {
+                this.currentPage++;
+            }
+        },
+        
+        viewResults(analysisId) {
+            window.location.href = `/video/analyze_camera/${analysisId}/`;
+        },
+        
+        deleteAnalysis(analysisId) {
+            if (confirm('Are you sure you want to delete this analysis record?')) {
+                // Implement delete functionality
+                fetch(`/video/delete-analysis/${analysisId}/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': window.Alpine.store('utils').getCsrfToken(),
+                        'Content-Type': 'application/json',
+                    },
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        window.Alpine.store('messages').add('Analysis record deleted', 'success');
+                        this.refreshData();
+                    } else {
+                        window.Alpine.store('messages').add('Delete failed: ' + data.message, 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Delete error:', error);
+                    window.Alpine.store('messages').add('Delete failed', 'error');
+                });
+            }
+        },
+        
+        refreshData() {
+            window.location.reload();
+        },
+        
+        exportHistory() {
+            // Implement export functionality
+            window.Alpine.store('messages').add('Export feature in development', 'info');
+        },
+        
+        formatFileSize(bytes) {
+            if (!bytes) return '未知';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        },
+        
+        formatDate(dateString) {
+            return new Date(dateString).toLocaleString('zh-CN');
+        },
+        
+        getStatusClass(status) {
+            const classes = {
+                'pending': 'bg-yellow-100 text-yellow-800',
+                'processing': 'bg-blue-100 text-blue-800',
+                'completed': 'bg-green-100 text-green-800',
+                'failed': 'bg-red-100 text-red-800'
+            };
+            return classes[status] || 'bg-gray-100 text-gray-800';
+        },
+        
+        getStatusText(status) {
+            const texts = {
+                'pending': 'Pending',
+                'processing': 'Processing',
+                'completed': 'Completed',
+                'failed': 'Failed'
+            };
+            return texts[status] || status;
+        },
+        
+        getAnalysisTypeText(type) {
+            const texts = {
+                'phone_detection': 'Phone Detection',
+                'object_detection': 'Object Detection',
+                'custom': 'Custom Analysis'
+            };
+            return texts[type] || type;
+        }
+    }
+}
+</script>
+{% endblock %}

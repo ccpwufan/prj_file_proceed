@@ -69,18 +69,31 @@
                 <div class="flex justify-between h-16">
                     <div class="flex">
                         <div class="flex-shrink-0 flex items-center">
-                            <a href="{% url 'home' %}" class="text-xl font-bold text-gray-900">File Processor</a>
+                            <a href="{% url 'home' %}" class="text-xl font-bold text-gray-900">AI Processor</a>
                         </div>
                         {% if user.is_authenticated %}
                         <div class="hidden sm:ml-6 sm:flex sm:space-x-8">
                             <a href="{% url 'file:upload_file' %}" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-                                Upload File
+                                File Upload
                             </a>
                             <a href="{% url 'file:file_list' %}" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-                                My Files
+                                Files List
                             </a>
                             <a href="{% url 'file:analysis_list' %}" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-                                My Analysis
+                                File Analysis History
+                            </a>
+                            <a href="{% url 'video:upload' %}" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                                Video Upload
+                            </a>
+                            <a href="{% url 'video:video_list' %}" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                                Video List
+                            </a>
+                            <a href="{% url 'video:video_analysis_history' %}" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                                Video Analysis History
+                            </a>
+                            
+                            <a href="{% url 'video:camera' %}" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                                Camera Detect
                             </a>
                         </div>
                         {% endif %}

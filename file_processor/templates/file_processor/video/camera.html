@@ -1,0 +1,302 @@
+{% extends 'file_processor/base.html' %}
+
+{% block title %}Camera Detection - File Processor{% endblock %}
+
+{% block content %}
+<div x-data="cameraDetection()" x-init="init()">
+    <div class="md:grid md:grid-cols-3 md:gap-6">
+        <div class="md:col-span-1">
+            <div class="px-4 sm:px-0">
+                <h3 class="text-lg font-medium leading-6 text-gray-900">Camera Detection</h3>
+                <p class="mt-1 text-sm text-gray-600">
+                    Use camera for real-time phone detection. Click start button to activate camera, system will automatically detect phone devices in the frame.
+                </p>
+                
+                <!-- Detection Settings -->
+                <div class="mt-6 space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Detection Threshold</label>
+                        <input type="range" 
+                               x-model="detectionThreshold" 
+                               min="0.1" 
+                               max="1.0" 
+                               step="0.1"
+                               class="w-full mt-1">
+                        <div class="text-xs text-gray-500" x-text="`Current threshold: ${detectionThreshold}`"></div>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Detection Interval (seconds)</label>
+                        <select x-model="detectionInterval" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                            <option value="0.5">0.5s</option>
+                            <option value="1.0">1.0s</option>
+                            <option value="2.0">2.0s</option>
+                            <option value="3.0">3.0s</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="mt-5 md:mt-0 md:col-span-2">
+            <div class="shadow sm:rounded-md sm:overflow-hidden">
+                <div class="px-4 py-5 bg-white space-y-6 sm:p-6">
+                    <!-- Camera View -->
+                    <div class="relative bg-black rounded-lg overflow-hidden" style="min-height: 480px;">
+                        <!-- Video Element -->
+                        <video x-ref="videoElement" 
+                               class="w-full h-full object-contain"
+                               :class="cameraActive ? '' : 'hidden'"
+                               autoplay></video>
+                        
+                        <!-- Canvas for detection -->
+                        <canvas x-ref="canvasElement" 
+                                class="absolute top-0 left-0 w-full h-full"
+                                :class="cameraActive ? '' : 'hidden'"></canvas>
+                        
+                        <!-- Placeholder when camera is off -->
+                        <div x-show="!cameraActive" class="flex items-center justify-center h-96">
+                            <div class="text-center">
+                                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                                </svg>
+                                <p class="mt-2 text-sm text-gray-500">Camera not active</p>
+                                <p class="text-xs text-gray-400">Click button below to start detection</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Detection Overlay -->
+                        <div x-show="cameraActive && currentDetections.length > 0" 
+                             class="absolute top-4 right-4 bg-red-500 text-white px-3 py-1 rounded-full text-sm font-medium">
+                            <span x-text="`${currentDetections.length} phones detected`"></span>
+                        </div>
+                        
+                        <!-- Camera Status -->
+                        <div x-show="cameraActive" class="absolute bottom-4 left-4 bg-black bg-opacity-50 text-white px-3 py-1 rounded text-sm">
+                            <span x-text="cameraStatus"></span>
+                        </div>
+                    </div>
+                    
+                    <!-- Control Buttons -->
+                    <div class="flex justify-center space-x-4">
+                        <button @click="toggleCamera()" 
+                                :class="cameraActive ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'"
+                                :disabled="cameraStarting"
+                                class="px-6 py-3 border border-transparent rounded-md shadow-sm text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50">
+                            <span x-show="!cameraActive && !cameraStarting">
+                                <svg class="inline-block w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                Start Detection
+                            </span>
+                            <span x-show="cameraActive">
+                                <svg class="inline-block w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"></path>
+                                </svg>
+                                Stop Detection
+                            </span>
+                            <span x-show="cameraStarting">
+                                <svg class="inline-block w-4 h-4 mr-2 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                Starting...
+                            </span>
+                        </button>
+                        
+                        <button @click="captureSnapshot()" 
+                                :disabled="!cameraActive"
+                                class="px-6 py-3 bg-blue-600 hover:bg-blue-700 border border-transparent rounded-md shadow-sm text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50">
+                            <svg class="inline-block w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                            </svg>
+                            Capture
+                        </button>
+                    </div>
+                    
+                    <!-- Detection History -->
+                    <div x-show="detectionHistory.length > 0">
+                        <h4 class="text-sm font-medium text-gray-900 mb-3">Detection History</h4>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <template x-for="(detection, index) in detectionHistory.slice(-8)" :key="index">
+                                <div class="relative group cursor-pointer" @click="viewDetection(detection)">
+                                    <img :src="detection.image" 
+                                         class="w-full h-24 object-cover rounded-lg border-2 border-gray-200 group-hover:border-blue-400 transition-colors">
+                                    <div class="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs p-1 rounded-b-lg">
+                                        <span x-text="`${detection.count} detections`"></span>
+                                        <span class="block" x-text="detection.time"></span>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function cameraDetection() {
+    return {
+        cameraActive: false,
+        cameraStarting: false,
+        cameraStatus: '准备就绪',
+        detectionThreshold: 0.5,
+        detectionInterval: 1.0,
+        currentDetections: [],
+        detectionHistory: [],
+        stream: null,
+        detectionTimer: null,
+        
+        init() {
+            // Initialize camera detection
+        },
+        
+        async toggleCamera() {
+            if (this.cameraActive) {
+                this.stopCamera();
+            } else {
+                await this.startCamera();
+            }
+        },
+        
+        async startCamera() {
+            this.cameraStarting = true;
+            this.cameraStatus = 'Starting camera...';
+            
+            try {
+                const videoElement = this.$refs.videoElement;
+                this.stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    } 
+                });
+                
+                videoElement.srcObject = this.stream;
+                
+                videoElement.onloadedmetadata = () => {
+                    videoElement.play();
+                    this.cameraActive = true;
+                    this.cameraStarting = false;
+                    this.cameraStatus = 'Detecting...';
+                    this.startDetection();
+                };
+                
+            } catch (error) {
+                console.error('Camera access error:', error);
+                window.Alpine.store('messages').add('Cannot access camera, please check permissions', 'error');
+                this.cameraStarting = false;
+                this.cameraStatus = 'Camera startup failed';
+            }
+        },
+        
+        stopCamera() {
+            if (this.stream) {
+                this.stream.getTracks().forEach(track => track.stop());
+                this.stream = null;
+            }
+            
+            if (this.detectionTimer) {
+                clearInterval(this.detectionTimer);
+                this.detectionTimer = null;
+            }
+            
+            this.cameraActive = false;
+            this.cameraStatus = 'Camera stopped';
+            this.currentDetections = [];
+        },
+        
+        startDetection() {
+            this.detectionTimer = setInterval(() => {
+                this.performDetection();
+            }, this.detectionInterval * 1000);
+        },
+        
+        performDetection() {
+            const videoElement = this.$refs.videoElement;
+            const canvasElement = this.$refs.canvasElement;
+            const ctx = canvasElement.getContext('2d');
+            
+            // Set canvas size to match video
+            canvasElement.width = videoElement.videoWidth;
+            canvasElement.height = videoElement.videoHeight;
+            
+            // Draw video frame to canvas
+            ctx.drawImage(videoElement, 0, 0);
+            
+            // Simulate detection (replace with actual detection logic)
+            const mockDetections = this.mockDetection();
+            this.currentDetections = mockDetections;
+            
+            // Draw detection boxes
+            ctx.strokeStyle = '#ef4444';
+            ctx.lineWidth = 2;
+            ctx.font = '14px Arial';
+            ctx.fillStyle = '#ef4444';
+            
+            mockDetections.forEach(detection => {
+                const [x, y, width, height] = detection.bbox;
+                ctx.strokeRect(x, y, width, height);
+                ctx.fillText(`${detection.class} (${(detection.confidence * 100).toFixed(1)}%)`, x, y - 5);
+            });
+            
+            this.cameraStatus = `Detecting... (${mockDetections.length} objects found)`;
+        },
+        
+        mockDetection() {
+            // Simulate random phone detection
+            const detections = [];
+            const numDetections = Math.random() > 0.6 ? Math.floor(Math.random() * 3) + 1 : 0;
+            
+            for (let i = 0; i < numDetections; i++) {
+                if (Math.random() > (1 - this.detectionThreshold)) {
+                    detections.push({
+                        class: 'phone',
+                        confidence: Math.random() * 0.5 + 0.5,
+                        bbox: [
+                            Math.random() * 200 + 50,
+                            Math.random() * 200 + 50,
+                            Math.random() * 100 + 80,
+                            Math.random() * 150 + 100
+                        ]
+                    });
+                }
+            }
+            
+            return detections;
+        },
+        
+        captureSnapshot() {
+            const canvasElement = this.$refs.canvasElement;
+            const imageData = canvasElement.toDataURL('image/png');
+            
+            const snapshot = {
+                image: imageData,
+                count: this.currentDetections.length,
+                time: new Date().toLocaleTimeString(),
+                detections: [...this.currentDetections]
+            };
+            
+            this.detectionHistory.push(snapshot);
+            
+            // Keep only last 20 snapshots
+            if (this.detectionHistory.length > 20) {
+                this.detectionHistory.shift();
+            }
+            
+            window.Alpine.store('messages').add('Screenshot saved', 'success');
+        },
+        
+        viewDetection(detection) {
+            // Implement viewing detection details
+            console.log('View detection:', detection);
+        }
+    }
+}
+</script>
+{% endblock %}
