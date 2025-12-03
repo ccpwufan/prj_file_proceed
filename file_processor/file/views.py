@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.contrib import messages
-from django.contrib.auth import login
+
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.template.loader import render_to_string
@@ -9,7 +9,7 @@ from django.db import transaction
 from django.utils import timezone
 from django.db.models import Case, When, Value, CharField
 from .models import FileHeader, FileDetail, FileAnalysis
-from .forms import PDFUploadForm, CustomUserCreationForm
+from .forms import PDFUploadForm
 from .services import DifyAPIService
 import fitz  # PyMuPDF
 import os
@@ -28,20 +28,7 @@ def append_log(file_header, message):
     file_header.log = current_log + log_entry
     file_header.save()
 
-def home(request):
-    return render(request, 'file_processor/home.html')
 
-def register(request):
-    if request.method == 'POST':
-        form = CustomUserCreationForm(request.POST)
-        if form.is_valid():
-            user = form.save()
-            login(request, user)
-            messages.success(request, 'Registration successful!')
-            return redirect('file:home')
-    else:
-        form = CustomUserCreationForm()
-    return render(request, 'registration/register.html', {'form': form})
 
 @login_required
 def upload_file(request):

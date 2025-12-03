@@ -5,12 +5,7 @@ from . import views
 app_name = 'file'
 
 urlpatterns = [
-    path('', views.home, name='home'),
     
-    # Authentication URLs
-    path('auth/login/', auth_views.LoginView.as_view(), name='login'),
-    path('auth/logout/', auth_views.LogoutView.as_view(next_page='/auth/login/'), name='logout'),
-    path('auth/register/', views.register, name='register'),
     
     # File Processing URLs
     path('file/upload/', views.upload_file, name='upload_file'),
