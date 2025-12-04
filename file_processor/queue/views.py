@@ -21,7 +21,7 @@ from .manager import queue_manager
 @staff_member_required
 def queue_management(request):
     """
-    Main queue management page.
+    Main queue management page with filtered and paginated task list.
     """
     if request.method == 'POST':
         action = request.POST.get('action')
@@ -42,31 +42,69 @@ def queue_management(request):
             clear_failed_tasks()
             messages.success(request, 'Failed tasks cleared')
         
-        return redirect('queue:management')
+        # Preserve filters and page when redirecting
+        query_params = request.GET.copy()
+        return redirect(f"{request.path}?{query_params.urlencode()}")
     
     # Get queue statistics
     stats = queue_manager.get_queue_stats()
     
-    # Get recent tasks
-    recent_tasks = TaskQueue.objects.select_related('user').order_by('-created_at')[:20]
+    # Get filter parameters
+    status_filter = request.GET.get('status', '')
+    task_type_filter = request.GET.get('task_type', '')
+    created_from_filter = request.GET.get('created_from', '')
+    created_to_filter = request.GET.get('created_to', '')
     
-    # Get task type statistics
-    from django.db.models import Count
-    # Get task type stats by aggregating from TaskQueue
-    task_type_stats = []
-    for task_type in TaskTypeRegistry.objects.all():
-        count = TaskQueue.objects.filter(task_type=task_type.task_type).count()
-        task_type_stats.append({
-            'task_type': task_type,
-            'task_count': count
-        })
-    # Sort by task count
-    task_type_stats.sort(key=lambda x: x['task_count'], reverse=True)
+    # Build query for all tasks
+    tasks = TaskQueue.objects.select_related('user').order_by('-created_at')
+    
+    if status_filter:
+        tasks = tasks.filter(status=status_filter)
+    
+    if task_type_filter:
+        tasks = tasks.filter(task_type=task_type_filter)
+    
+    if created_from_filter:
+        try:
+            from datetime import datetime
+            created_from = datetime.strptime(created_from_filter, '%Y-%m-%d')
+            tasks = tasks.filter(created_at__date__gte=created_from.date())
+        except ValueError:
+            pass
+    
+    if created_to_filter:
+        try:
+            from datetime import datetime
+            created_to = datetime.strptime(created_to_filter, '%Y-%m-%d')
+            tasks = tasks.filter(created_at__date__lte=created_to.date())
+        except ValueError:
+            pass
+    
+    # Pagination (10 tasks per page)
+    page = request.GET.get('page', 1)
+    paginator = Paginator(tasks, 10)
+    
+    try:
+        tasks_page = paginator.page(page)
+    except PageNotAnInteger:
+        tasks_page = paginator.page(1)
+    except EmptyPage:
+        tasks_page = paginator.page(paginator.num_pages)
+    
+    # Get filter options
+    status_choices = TaskQueue.STATUS_CHOICES
+    task_types = TaskQueue.objects.values('task_type').distinct().order_by('task_type')
     
     return render(request, 'queue/management.html', {
         'queue_stats': stats,
-        'recent_tasks': recent_tasks,
-        'task_type_stats': task_type_stats,
+        'tasks': tasks_page,
+        'paginator': paginator,
+        'status_filter': status_filter,
+        'task_type_filter': task_type_filter,
+        'created_from_filter': created_from_filter,
+        'created_to_filter': created_to_filter,
+        'status_choices': status_choices,
+        'task_types': task_types,
         'is_running': queue_manager.is_running,
         'is_paused': queue_manager.is_paused,
     })
@@ -133,10 +171,19 @@ def task_detail(request, task_id):
     if task.execution_log:
         execution_log_lines = task.execution_log.split('\n')
     
-    return render(request, 'queue/task_detail.html', {
-        'task': task,
-        'execution_log_lines': execution_log_lines,
-    })
+    # Check if this is an AJAX request
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        # Return only the modal content for AJAX requests
+        return render(request, 'queue/task_detail_modal.html', {
+            'task': task,
+            'execution_log_lines': execution_log_lines,
+        })
+    else:
+        # Full page render for regular requests
+        return render(request, 'queue/task_detail.html', {
+            'task': task,
+            'execution_log_lines': execution_log_lines,
+        })
 
 
 @require_POST

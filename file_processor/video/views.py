@@ -338,12 +338,46 @@ def video_analysis_history(request):
 @require_POST
 @login_required
 def delete_video_file(request, video_file_id):
-    """Delete a video file"""
+    """Delete a video file and all associated files"""
+    import os
+    from django.conf import settings
+    
     video_file = get_object_or_404(VideoFile, id=video_file_id, user=request.user)
     
     try:
+        # 1. Delete physical files
+        files_to_delete = [
+            video_file.video_file,
+            video_file.original_file, 
+            video_file.converted_file,
+            video_file.thumbnail
+        ]
+        
+        for file_field in files_to_delete:
+            if file_field and os.path.exists(file_field.path):
+                try:
+                    os.remove(file_field.path)
+                    # Also remove the directory if it becomes empty
+                    dir_path = os.path.dirname(file_field.path)
+                    if os.path.exists(dir_path) and not os.listdir(dir_path):
+                        os.rmdir(dir_path)
+                except OSError as e:
+                    print(f"Warning: Could not delete file {file_field.path}: {e}")
+        
+        # 2. Delete detection frame images
+        for analysis in video_file.analyses.all():
+            for frame in analysis.detection_frames.all():
+                if frame.frame_image and os.path.exists(frame.frame_image.path):
+                    try:
+                        os.remove(frame.frame_image.path)
+                    except OSError as e:
+                        print(f"Warning: Could not delete frame image {frame.frame_image.path}: {e}")
+        
+        # 3. Delete database record (cascade will handle related records)
         video_file.delete()
-        return JsonResponse({'success': True, 'message': 'Video file deleted successfully!'})
+        
+        return JsonResponse({'success': True, 'message': 'Video file and all associated files deleted successfully!'})
+        
     except Exception as e:
         return JsonResponse({'success': False, 'message': str(e)})
 

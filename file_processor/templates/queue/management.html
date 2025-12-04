@@ -42,7 +42,8 @@
 {% endblock %}
 
 {% block content %}
-<div class="container mx-auto px-4 mt-4">
+<div x-data="queueManagement()" x-init="init()" class="container mx-auto px-4 mt-4">
+
     <div class="flex justify-between items-center mb-4">
         <h1 class="text-2xl font-bold"><i class="fas fa-tasks mr-2"></i>Queue Management</h1>
         <div class="flex gap-2">
@@ -145,92 +146,64 @@
         </div>
     </div>
 
-    <!-- Performance Metrics -->
-    {% if queue_stats.performance %}
-    <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-4">
-        <div class="px-6 py-4 border-b border-gray-200">
-            <h5 class="text-lg font-semibold"><i class="fas fa-tachometer-alt mr-2"></i>Performance Metrics</h5>
-        </div>
-        <div class="p-6">
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div class="text-center">
-                    <h5 class="text-xl font-semibold">{{ queue_stats.performance.runtime_formatted }}</h5>
-                    <small class="text-gray-500">Runtime</small>
-                </div>
-                <div class="text-center">
-                    <h5 class="text-xl font-semibold">{{ queue_stats.performance.tasks_processed }}</h5>
-                    <small class="text-gray-500">Tasks Processed</small>
-                </div>
-                <div class="text-center">
-                    <h5 class="text-xl font-semibold">{{ queue_stats.performance.success_rate|floatformat:1 }}%</h5>
-                    <small class="text-gray-500">Success Rate</small>
-                </div>
-                <div class="text-center">
-                    <h5 class="text-xl font-semibold">{{ queue_stats.performance.throughput_per_hour|floatformat:1 }}</h5>
-                    <small class="text-gray-500">Tasks/Hour</small>
-                </div>
-            </div>
-        </div>
-    </div>
-    {% endif %}
 
-    <!-- Task Type Breakdown -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200">
-            <div class="px-6 py-4 border-b border-gray-200">
-                <h5 class="text-lg font-semibold"><i class="fas fa-chart-pie mr-2"></i>Task Type Breakdown</h5>
-            </div>
-            <div class="p-6">
-                {% if queue_stats.by_type %}
-                {% for task_type, stats in queue_stats.by_type.items %}
-                <div class="flex justify-between items-center mb-2">
-                    <span class="text-gray-700">{{ task_type }}</span>
-                    <div class="flex gap-2">
-                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">{{ stats.total }}</span>
-                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">{{ stats.completed }}</span>
-                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">{{ stats.failed }}</span>
-                    </div>
-                </div>
-                {% endfor %}
-                {% else %}
-                <p class="text-gray-500">No tasks found</p>
-                {% endif %}
-            </div>
-        </div>
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200">
-            <div class="px-6 py-4 border-b border-gray-200">
-                <h5 class="text-lg font-semibold"><i class="fas fa-list mr-2"></i>Task Type Registry</h5>
-            </div>
-            <div class="p-6">
-                {% for task_type_stat in task_type_stats %}
-                <div class="flex justify-between items-center mb-2">
-                    <div>
-                        <strong class="text-gray-900">{{ task_type_stat.task_type.task_type }}</strong>
-                        {% if task_type_stat.task_type.is_active %}
-                        <span class="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">Active</span>
-                        {% else %}
-                        <span class="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">Inactive</span>
-                        {% endif %}
-                    </div>
-                    <div>
-                        <small class="text-gray-500">{{ task_type_stat.task_count }} tasks</small>
-                    </div>
-                </div>
-                {% endfor %}
-                <a href="{% url 'queue:task_type_registry' %}" class="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 mt-2">
-                    Manage Task Types
-                </a>
-            </div>
-        </div>
-    </div>
 
-    <!-- Recent Tasks -->
+
+
+    <!-- Task List -->
     <div class="bg-white rounded-lg shadow-sm border border-gray-200">
         <div class="px-6 py-4 border-b border-gray-200">
-            <h5 class="text-lg font-semibold"><i class="fas fa-history mr-2"></i>Recent Tasks</h5>
+            <h5 class="text-lg font-semibold"><i class="fas fa-list mr-2"></i>Task List</h5>
         </div>
         <div class="p-6">
-            {% if recent_tasks %}
+            <!-- Filters -->
+            <form method="get" class="mb-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                        <select name="task_type" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                            <option value="">All Types</option>
+                            {% for task_type in task_types %}
+                            <option value="{{ task_type.task_type }}" {% if task_type_filter == task_type.task_type %}selected{% endif %}>
+                                {{ task_type.task_type }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                        <select name="status" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                            <option value="">All Statuses</option>
+                            {% for status_value, status_label in status_choices %}
+                            <option value="{{ status_value }}" {% if status_filter == status_value %}selected{% endif %}>
+                                {{ status_label }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Created From</label>
+                        <input type="date" name="created_from" value="{{ created_from_filter }}" 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Created To</label>
+                        <input type="date" name="created_to" value="{{ created_to_filter }}" 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                    </div>
+                </div>
+                <div class="flex gap-2">
+                    <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        <i class="fas fa-filter mr-2"></i>Filter
+                    </button>
+                    <a href="{% url 'queue:management' %}" class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        <i class="fas fa-times mr-2"></i>Clear
+                    </a>
+                </div>
+            </form>
+
+            <!-- Task Table -->
+            {% if tasks %}
             <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
@@ -246,13 +219,13 @@
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
-                        {% for task in recent_tasks %}
+                        {% for task in tasks %}
                         <tr class="task-item status-{{ task.status }}">
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ task.id }}</td>
                             <td class="px-6 py-4 whitespace-nowrap">
-                                <a href="{% url 'queue:task_detail' task.id %}" class="text-sm text-blue-600 hover:text-blue-900">
+                                <button @click="openTaskDetail({{ task.id }})" class="text-sm text-blue-600 hover:text-blue-900 text-left">
                                     {{ task.task_name|truncatechars:40 }}
-                                </a>
+                                </button>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">{{ task.task_type }}</span>
@@ -273,7 +246,7 @@
                                 {% endif %}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ task.user.username|default:"System" }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ task.created_at|date:"H:i" }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ task.created_at|date:"Y-m-d H:i" }}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                 {% if task.started_at and task.completed_at %}
                                 {% with duration=task.completed_at|timeuntil:task.started_at %}
@@ -284,67 +257,302 @@
                                 {% endif %}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                <a href="{% url 'queue:task_detail' task.id %}" class="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                                <button @click="openTaskDetail({{ task.id }})" class="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
                                     <i class="fas fa-eye"></i>
-                                </a>
+                                </button>
                             </td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
-            {% else %}
-            <p class="text-gray-500">No recent tasks found</p>
-            {% endif %}
-            <div class="mt-4">
-                <a href="{% url 'queue:task_list' %}" class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                    View All Tasks
-                </a>
+
+            <!-- Pagination -->
+            {% if paginator.num_pages > 1 %}
+            <div class="mt-6 flex items-center justify-between">
+                <div class="text-sm text-gray-700">
+                    Showing 
+                    <span class="font-medium">{{ tasks.start_index }}</span>
+                    to 
+                    <span class="font-medium">{{ tasks.end_index }}</span>
+                    of 
+                    <span class="font-medium">{{ paginator.count }}</span>
+                    results
+                </div>
+                <div class="flex gap-1">
+                    {% if tasks.has_previous %}
+                        <a href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ tasks.previous_page_number }}" 
+                           class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+                            Previous
+                        </a>
+                    {% endif %}
+                    
+                    {% for num in tasks.paginator.page_range %}
+                        {% if tasks.number == num %}
+                            <span class="px-3 py-2 text-sm font-medium text-white bg-blue-600 border border-blue-600 rounded-md">{{ num }}</span>
+                        {% elif num > tasks.number|add:'-3' and num < tasks.number|add:'3' %}
+                            <a href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ num }}" 
+                               class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50">{{ num }}</a>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if tasks.has_next %}
+                        <a href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ tasks.next_page_number }}" 
+                           class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+                            Next
+                        </a>
+                    {% endif %}
+                </div>
             </div>
+            {% endif %}
+            {% else %}
+            <p class="text-gray-500">No tasks found</p>
+            {% endif %}
         </div>
     </div>
+
+<!-- Task Detail Modal -->
+<div x-show="showTaskModal" 
+     x-cloak
+     class="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4">
+    <div @click.away="closeTaskModal()" class="container mx-auto max-w-7xl bg-white rounded-lg p-6 max-h-[90vh] overflow-y-auto">
+        <div class="flex justify-between items-center mb-4 border-b pb-4">
+            <h3 class="text-lg font-bold">Task Details</h3>
+            <button @click="closeTaskModal()" class="text-gray-500 hover:text-gray-700">
+                ✕ Close
+            </button>
+        </div>
+        <div x-show="loadingTask" class="text-center py-8">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p class="text-gray-600">Loading task details...</p>
+        </div>
+        <div x-show="!loadingTask && taskDetailHtml" x-html="taskDetailHtml"></div>
+    </div>
 </div>
+
 {% endblock %}
 
 {% block extra_js %}
 <script>
-// Auto-refresh queue stats every 30 seconds
-function refreshQueueStats() {
-    fetch(window.location.href, {
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest'
-        }
-    })
-    .then(response => response.text())
-    .then(html => {
-        // Update the queue stats section
-        // This is a simplified version - in production, you'd want to return JSON
-        console.log('Queue stats refreshed');
-    })
-    .catch(error => {
-        console.error('Error refreshing queue stats:', error);
-    });
-}
-
-// Set up auto-refresh
-setInterval(refreshQueueStats, 30000);
-
-// Update progress bars if any
-function updateProgressBars() {
-    document.querySelectorAll('.progress-container').forEach(container => {
-        const progressBar = container.querySelector('.progress-bar');
-        if (progressBar) {
-            const progress = progressBar.getAttribute('data-progress');
-            if (progress) {
-                progressBar.style.width = progress + '%';
+function queueManagement() {
+    return {
+        showTaskModal: false,
+        loadingTask: false,
+        taskDetailHtml: '',
+        
+        init() {
+            console.log('queueManagement init called');
+            
+            // Auto-refresh queue stats every 30 seconds
+            setInterval(() => {
+                this.refreshQueueStats();
+            }, 30000);
+            
+            // Update progress bars on load
+            this.updateProgressBars();
+            
+            // Set up event listeners for modal events
+            this.$el.addEventListener('close-modal', () => {
+                console.log('close-modal event received');
+                this.closeTaskModal();
+            });
+            
+            this.$el.addEventListener('retry-task', async (event) => {
+                console.log('retry-task event received', event.detail);
+                await this.retryTask(event.detail.taskId);
+            });
+            
+            this.$el.addEventListener('cancel-task', async (event) => {
+                console.log('cancel-task event received', event.detail);
+                await this.cancelTask(event.detail.taskId);
+            });
+        },
+        
+        async openTaskDetail(taskId) {
+            console.log('openTaskDetail called with taskId:', taskId);
+            this.showTaskModal = true;
+            this.loadingTask = true;
+            this.taskDetailHtml = '';
+            
+            // Debug: Log state changes
+            console.log('After setting state - showTaskModal:', this.showTaskModal, 'loadingTask:', this.loadingTask);
+            
+            try {
+                const url = `/queue/task_detail/${taskId}/`;
+                console.log('Fetching URL:', url);
+                
+                const response = await fetch(url, {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+                
+                console.log('Response status:', response.status);
+                console.log('Response ok:', response.ok);
+                
+                if (response.ok) {
+                    const html = await response.text();
+                    console.log('Response HTML length:', html.length);
+                    console.log('First 200 chars:', html.substring(0, 200));
+                    this.taskDetailHtml = html;
+                } else {
+                    console.error('Response not ok:', response.status);
+                    this.taskDetailHtml = '<div class="p-8 text-center text-red-600">Failed to load task details. Status: ' + response.status + '</div>';
+                }
+            } catch (error) {
+                console.error('Error loading task detail:', error);
+                this.taskDetailHtml = '<div class="p-8 text-center text-red-600">Error loading task details: ' + error.message + '</div>';
+            } finally {
+                this.loadingTask = false;
+                console.log('Request completed - showTaskModal:', this.showTaskModal, 'loadingTask:', this.loadingTask, 'taskDetailHtml length:', this.taskDetailHtml.length);
             }
+        },
+        
+        closeTaskModal() {
+            this.showTaskModal = false;
+            this.taskDetailHtml = '';
+        },
+        
+        testModal() {
+            console.log('testModal called - setting showTaskModal to true manually');
+            this.showTaskModal = true;
+            this.loadingTask = false;
+            this.taskDetailHtml = '<div class="p-8 text-center"><h3 class="text-lg font-bold mb-4">Test Modal Content</h3><p class="text-gray-600">This is a test to verify the modal is working.</p></div>';
+            console.log('testModal completed - showTaskModal:', this.showTaskModal);
+        },
+        
+        refreshQueueStats() {
+            // Optional: Implement queue stats refresh
+            console.log('Refreshing queue stats...');
+        },
+        
+        updateProgressBars() {
+            document.querySelectorAll('.progress-container').forEach(container => {
+                const progressBar = container.querySelector('.progress-bar');
+                if (progressBar) {
+                    const progress = progressBar.getAttribute('data-progress');
+                    if (progress) {
+                        progressBar.style.width = progress + '%';
+                    }
+                }
+            });
+        },
+        
+        async retryTask(taskId) {
+            if (!confirm('Are you sure you want to retry this task?')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/queue/task_detail/${taskId}/retry/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': this.getCsrfToken(),
+                        'Content-Type': 'application/json',
+                    },
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('Task retry initiated successfully');
+                    this.closeTaskModal();
+                    // Refresh the page preserving filters and current page
+                    setTimeout(() => {
+                        const url = new URL(window.location);
+                        window.location.href = url.toString();
+                    }, 1000);
+                } else {
+                    alert('Failed to retry task: ' + data.message);
+                }
+            } catch (error) {
+                console.error('Retry error:', error);
+                alert('Retry failed');
+            }
+        },
+        
+        async cancelTask(taskId) {
+            if (!confirm('Are you sure you want to cancel this task?')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/queue/task_detail/${taskId}/cancel/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': this.getCsrfToken(),
+                        'Content-Type': 'application/json',
+                    },
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('Task cancelled successfully');
+                    this.closeTaskModal();
+                    // Refresh the page preserving filters and current page
+                    setTimeout(() => {
+                        const url = new URL(window.location);
+                        window.location.href = url.toString();
+                    }, 1000);
+                } else {
+                    alert('Failed to cancel task: ' + data.message);
+                }
+            } catch (error) {
+                console.error('Cancel error:', error);
+                alert('Cancel failed');
+            }
+        },
+        
+        getCsrfToken() {
+            // Get CSRF token from cookie
+            const name = 'csrftoken';
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        },
+        
+        getStatusClass(status) {
+            const classes = {
+                'pending': 'bg-yellow-100 text-yellow-800',
+                'processing': 'bg-blue-100 text-blue-800',
+                'completed': 'bg-green-100 text-green-800',
+                'failed': 'bg-red-100 text-red-800',
+                'cancelled': 'bg-gray-100 text-gray-800'
+            };
+            return classes[status] || 'bg-gray-100 text-gray-800';
+        },
+        
+        getStatusIcon(status) {
+            const icons = {
+                'pending': 'fa-clock',
+                'processing': 'fa-spinner fa-spin',
+                'completed': 'fa-check-circle',
+                'failed': 'fa-exclamation-circle',
+                'cancelled': 'fa-times-circle'
+            };
+            return icons[status] || 'fa-question-circle';
+        },
+        
+        getPriorityClass(priority) {
+            const classes = {
+                '0': 'bg-gray-100 text-gray-800',
+                '1': 'bg-blue-100 text-blue-800',
+                '2': 'bg-orange-100 text-orange-800',
+                '3': 'bg-red-100 text-red-800'
+            };
+            return classes[priority] || 'bg-gray-100 text-gray-800';
         }
-    });
+    }
 }
-
-// Initialize on page load
-document.addEventListener('DOMContentLoaded', function() {
-    updateProgressBars();
-});
 </script>
 {% endblock %}

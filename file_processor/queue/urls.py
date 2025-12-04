@@ -12,10 +12,10 @@ urlpatterns = [
     path('', views.queue_management, name='management'),
     
     # Task management
-    path('tasks/', views.task_list, name='task_list'),
-    path('tasks/<int:task_id>/', views.task_detail, name='task_detail'),
-    path('tasks/<int:task_id>/cancel/', views.cancel_task, name='cancel_task'),
-    path('tasks/<int:task_id>/retry/', views.retry_task, name='retry_task'),
+    path('task_detail/', views.task_list, name='task_list'),
+    path('task_detail/<int:task_id>/', views.task_detail, name='task_detail'),
+    path('task_detail/<int:task_id>/cancel/', views.cancel_task, name='cancel_task'),
+    path('task_detail/<int:task_id>/retry/', views.retry_task, name='retry_task'),
     
     # User views
     path('my-tasks/', views.user_task_list, name='user_task_list'),
