@@ -1,0 +1,350 @@
+{% extends "file_processor/base.html" %}
+
+{% block title %}Queue Management{% endblock %}
+
+{% block extra_css %}
+<style>
+.queue-stats-card {
+    transition: all 0.3s ease;
+}
+.queue-stats-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+.task-item {
+    border-left: 4px solid #dee2e6;
+    transition: border-color 0.3s ease;
+}
+.task-item.status-pending {
+    border-left-color: #f59e0b;
+}
+.task-item.status-processing {
+    border-left-color: #06b6d4;
+}
+.task-item.status-completed {
+    border-left-color: #10b981;
+}
+.task-item.status-failed {
+    border-left-color: #ef4444;
+}
+.progress-container {
+    height: 4px;
+    background-color: #e5e7eb;
+    border-radius: 2px;
+    overflow: hidden;
+}
+.progress-bar {
+    height: 100%;
+    background-color: #3b82f6;
+    transition: width 0.3s ease;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 mt-4">
+    <div class="flex justify-between items-center mb-4">
+        <h1 class="text-2xl font-bold"><i class="fas fa-tasks mr-2"></i>Queue Management</h1>
+        <div class="flex gap-2">
+            {% if queue_stats.manager.is_running %}
+            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                <i class="fas fa-play mr-1"></i>
+                Running
+            </span>
+            {% else %}
+            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
+                <i class="fas fa-stop mr-1"></i>
+                Stopped
+            </span>
+            {% endif %}
+            {% if queue_stats.manager.is_paused %}
+            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">
+                <i class="fas fa-pause mr-1"></i>
+                Paused
+            </span>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Queue Control Buttons -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-4">
+        <div class="p-6">
+            <h5 class="text-lg font-semibold mb-3">Queue Control</h5>
+            <form method="post" class="inline-flex flex-wrap gap-2">
+                {% csrf_token %}
+                {% if not queue_stats.manager.is_running %}
+                <button type="submit" name="action" value="start" class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                    <i class="fas fa-play mr-1"></i>Start Queue
+                </button>
+                {% else %}
+                <button type="submit" name="action" value="stop" class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                    <i class="fas fa-stop mr-1"></i>Stop Queue
+                </button>
+                {% if not queue_stats.manager.is_paused %}
+                <button type="submit" name="action" value="pause" class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-yellow-600 hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500">
+                    <i class="fas fa-pause mr-1"></i>Pause
+                </button>
+                {% else %}
+                <button type="submit" name="action" value="resume" class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    <i class="fas fa-play mr-1"></i>Resume
+                </button>
+                {% endif %}
+                {% endif %}
+                <button type="submit" name="action" value="clear_failed" class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                    <i class="fas fa-trash mr-1"></i>Clear Failed
+                </button>
+            </form>
+            <div class="inline-flex gap-2 ml-4">
+                <a href="{% url 'queue:task_list' %}" class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                    <i class="fas fa-list mr-1"></i>View All Tasks
+                </a>
+                <a href="{% url 'queue:statistics' %}" class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                    <i class="fas fa-chart-bar mr-1"></i>Statistics
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Queue Statistics -->
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-4">
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 queue-stats-card">
+            <div class="p-4 text-center">
+                <h3 class="text-2xl font-bold text-yellow-600">{{ queue_stats.pending }}</h3>
+                <p class="text-sm text-gray-600">Pending</p>
+            </div>
+        </div>
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 queue-stats-card">
+            <div class="p-4 text-center">
+                <h3 class="text-2xl font-bold text-cyan-600">{{ queue_stats.processing }}</h3>
+                <p class="text-sm text-gray-600">Processing</p>
+            </div>
+        </div>
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 queue-stats-card">
+            <div class="p-4 text-center">
+                <h3 class="text-2xl font-bold text-gray-500">{{ queue_stats.retrying }}</h3>
+                <p class="text-sm text-gray-600">Retrying</p>
+            </div>
+        </div>
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 queue-stats-card">
+            <div class="p-4 text-center">
+                <h3 class="text-2xl font-bold text-green-600">{{ queue_stats.completed }}</h3>
+                <p class="text-sm text-gray-600">Completed</p>
+            </div>
+        </div>
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 queue-stats-card">
+            <div class="p-4 text-center">
+                <h3 class="text-2xl font-bold text-red-600">{{ queue_stats.failed }}</h3>
+                <p class="text-sm text-gray-600">Failed</p>
+            </div>
+        </div>
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 queue-stats-card">
+            <div class="p-4 text-center">
+                <h3 class="text-2xl font-bold text-blue-600">{{ queue_stats.total }}</h3>
+                <p class="text-sm text-gray-600">Total</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Performance Metrics -->
+    {% if queue_stats.performance %}
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-4">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h5 class="text-lg font-semibold"><i class="fas fa-tachometer-alt mr-2"></i>Performance Metrics</h5>
+        </div>
+        <div class="p-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div class="text-center">
+                    <h5 class="text-xl font-semibold">{{ queue_stats.performance.runtime_formatted }}</h5>
+                    <small class="text-gray-500">Runtime</small>
+                </div>
+                <div class="text-center">
+                    <h5 class="text-xl font-semibold">{{ queue_stats.performance.tasks_processed }}</h5>
+                    <small class="text-gray-500">Tasks Processed</small>
+                </div>
+                <div class="text-center">
+                    <h5 class="text-xl font-semibold">{{ queue_stats.performance.success_rate|floatformat:1 }}%</h5>
+                    <small class="text-gray-500">Success Rate</small>
+                </div>
+                <div class="text-center">
+                    <h5 class="text-xl font-semibold">{{ queue_stats.performance.throughput_per_hour|floatformat:1 }}</h5>
+                    <small class="text-gray-500">Tasks/Hour</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Task Type Breakdown -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h5 class="text-lg font-semibold"><i class="fas fa-chart-pie mr-2"></i>Task Type Breakdown</h5>
+            </div>
+            <div class="p-6">
+                {% if queue_stats.by_type %}
+                {% for task_type, stats in queue_stats.by_type.items %}
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-gray-700">{{ task_type }}</span>
+                    <div class="flex gap-2">
+                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">{{ stats.total }}</span>
+                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">{{ stats.completed }}</span>
+                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">{{ stats.failed }}</span>
+                    </div>
+                </div>
+                {% endfor %}
+                {% else %}
+                <p class="text-gray-500">No tasks found</p>
+                {% endif %}
+            </div>
+        </div>
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h5 class="text-lg font-semibold"><i class="fas fa-list mr-2"></i>Task Type Registry</h5>
+            </div>
+            <div class="p-6">
+                {% for task_type_stat in task_type_stats %}
+                <div class="flex justify-between items-center mb-2">
+                    <div>
+                        <strong class="text-gray-900">{{ task_type_stat.task_type.task_type }}</strong>
+                        {% if task_type_stat.task_type.is_active %}
+                        <span class="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">Active</span>
+                        {% else %}
+                        <span class="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">Inactive</span>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <small class="text-gray-500">{{ task_type_stat.task_count }} tasks</small>
+                    </div>
+                </div>
+                {% endfor %}
+                <a href="{% url 'queue:task_type_registry' %}" class="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 mt-2">
+                    Manage Task Types
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Tasks -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h5 class="text-lg font-semibold"><i class="fas fa-history mr-2"></i>Recent Tasks</h5>
+        </div>
+        <div class="p-6">
+            {% if recent_tasks %}
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Task Name</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Duration</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for task in recent_tasks %}
+                        <tr class="task-item status-{{ task.status }}">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ task.id }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <a href="{% url 'queue:task_detail' task.id %}" class="text-sm text-blue-600 hover:text-blue-900">
+                                    {{ task.task_name|truncatechars:40 }}
+                                </a>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">{{ task.task_type }}</span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                {% if task.status == 'pending' %}
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">Pending</span>
+                                {% elif task.status == 'processing' %}
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-cyan-100 text-cyan-800">Processing</span>
+                                {% elif task.status == 'retrying' %}
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">Retrying</span>
+                                {% elif task.status == 'completed' %}
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Completed</span>
+                                {% elif task.status == 'failed' %}
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">Failed</span>
+                                {% elif task.status == 'cancelled' %}
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-900 text-white">Cancelled</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ task.user.username|default:"System" }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ task.created_at|date:"H:i" }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {% if task.started_at and task.completed_at %}
+                                {% with duration=task.completed_at|timeuntil:task.started_at %}
+                                <span class="text-gray-600">{{ duration }}</span>
+                                {% endwith %}
+                                {% else %}
+                                <span class="text-gray-400">-</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                <a href="{% url 'queue:task_detail' task.id %}" class="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-gray-500">No recent tasks found</p>
+            {% endif %}
+            <div class="mt-4">
+                <a href="{% url 'queue:task_list' %}" class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    View All Tasks
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Auto-refresh queue stats every 30 seconds
+function refreshQueueStats() {
+    fetch(window.location.href, {
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.text())
+    .then(html => {
+        // Update the queue stats section
+        // This is a simplified version - in production, you'd want to return JSON
+        console.log('Queue stats refreshed');
+    })
+    .catch(error => {
+        console.error('Error refreshing queue stats:', error);
+    });
+}
+
+// Set up auto-refresh
+setInterval(refreshQueueStats, 30000);
+
+// Update progress bars if any
+function updateProgressBars() {
+    document.querySelectorAll('.progress-container').forEach(container => {
+        const progressBar = container.querySelector('.progress-bar');
+        if (progressBar) {
+            const progress = progressBar.getAttribute('data-progress');
+            if (progress) {
+                progressBar.style.width = progress + '%';
+            }
+        }
+    });
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    updateProgressBars();
+});
+</script>
+{% endblock %}

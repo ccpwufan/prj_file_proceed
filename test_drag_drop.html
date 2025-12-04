@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Drag and Drop</title>
+    <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <style>
+        .drop-zone {
+            border: 2px dashed #ccc;
+            padding: 20px;
+            text-align: center;
+            margin: 20px;
+        }
+        .drag-over {
+            border-color: #007bff;
+            background-color: #f0f8ff;
+        }
+        .file-item {
+            padding: 10px;
+            border: 1px solid #ddd;
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <div x-data="testDragDrop()">
+        <h2>Test Drag and Drop File Display</h2>
+        
+        <div class="drop-zone"
+             @dragover.prevent="dragOver = true"
+             @dragleave.prevent="dragOver = false"
+             @drop.prevent="handleDrop($event)"
+             :class="dragOver ? 'drag-over' : ''">
+            <p>Drag files here to test</p>
+        </div>
+        
+        <div x-show="selectedFiles.length > 0">
+            <h3>Selected Files:</h3>
+            <template x-for="(file, index) in selectedFiles" :key="index">
+                <div class="file-item">
+                    <strong>Name:</strong> <span x-text="file.name"></span><br>
+                    <strong>Size:</strong> <span x-text="formatFileSize(file.size)"></span><br>
+                    <strong>Type:</strong> <span x-text="file.type || 'Unknown'"></span>
+                </div>
+            </template>
+        </div>
+    </div>
+
+    <script>
+        function testDragDrop() {
+            return {
+                selectedFiles: [],
+                dragOver: false,
+                
+                handleDrop(event) {
+                    this.dragOver = false;
+                    const files = Array.from(event.dataTransfer.files);
+                    console.log('Dropped files:', files);
+                    
+                    if (files.length > 0) {
+                        this.validateAndSetFiles(files);
+                    }
+                },
+                
+                validateAndSetFiles(files) {
+                    this.selectedFiles = [];
+                    let validFiles = [];
+                    
+                    for (let i = 0; i < files.length; i++) {
+                        const file = files[i];
+                        console.log(`File ${i}:`, {
+                            name: file.name,
+                            size: file.size,
+                            type: file.type
+                        });
+                        
+                        // Create file object with additional properties while preserving original File object
+                        const fileWithStatus = {
+                            file: file,  // Store original File object
+                            name: file.name,  // Explicitly copy name
+                            size: file.size,  // Explicitly copy size
+                            type: file.type,  // Explicitly copy type
+                            uploadStatus: 'pending'
+                        };
+                        
+                        validFiles.push(fileWithStatus);
+                    }
+                    
+                    this.selectedFiles = validFiles;
+                    console.log('Selected files after processing:', this.selectedFiles);
+                },
+                
+                formatFileSize(bytes) {
+                    if (!bytes) return '0 B';
+                    const k = 1024;
+                    const sizes = ['B', 'KB', 'MB', 'GB'];
+                    const i = Math.floor(Math.log(bytes) / Math.log(k));
+                    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+                }
+            }
+        }
+    </script>
+</body>
+</html>

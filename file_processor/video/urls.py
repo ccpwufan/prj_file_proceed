@@ -15,4 +15,5 @@ urlpatterns = [
     path('delete-analysis/<int:analysis_id>/', views.delete_analysis, name='delete_analysis'),
     path('generate-thumbnail/<int:video_file_id>/', views.generate_video_thumbnail, name='generate_thumbnail'),
     path('generate-all-thumbnails/', views.generate_all_thumbnails, name='generate_all_thumbnails'),
+    path('conversion-status/<int:video_file_id>/', views.video_conversion_status, name='conversion_status'),
 ]

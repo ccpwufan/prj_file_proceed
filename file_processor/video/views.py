@@ -1,4 +1,5 @@
 import json
+import threading
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
@@ -10,7 +11,8 @@ from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db.models import Q
 from .models import VideoFile, VideoAnalysis, VideoDetectionFrame
 from .forms import VideoUploadForm, VideoAnalysisForm
-from .services import VideoProcessingService, generate_thumbnail
+from .services import VideoProcessor, generate_thumbnail
+from file_processor.queue.manager import queue_manager
 
 
 @login_required
@@ -21,27 +23,65 @@ def video_home(request):
 
 @login_required
 def video_upload(request):
-    """Handle video file upload"""
+    """Handle video file upload with queue-based conversion"""
     if request.method == 'POST':
         form = VideoUploadForm(request.POST, request.FILES)
         if form.is_valid():
+            # Create video file record
             video_file = form.save(commit=False)
             video_file.user = request.user
             video_file.original_filename = request.FILES['video_file'].name
+            video_file.status = 'uploaded'  # Set status to uploaded (will be processed by queue)
             video_file.save()
             
-            # Generate thumbnail after video upload
             try:
-                thumbnail_path = generate_thumbnail(video_file.video_file.path)
-                if thumbnail_path:
-                    # Update thumbnail field relative to media root
-                    video_file.thumbnail.name = thumbnail_path.replace('media/', '')
-                    video_file.save()
-                    messages.success(request, f'Video "{video_file.original_filename}" uploaded successfully with thumbnail!')
-                else:
-                    messages.warning(request, f'Video "{video_file.original_filename}" uploaded successfully, but thumbnail generation failed.')
+                # Add video conversion task to queue
+                task = queue_manager.add_task(
+                    task_name=f"Convert video: {video_file.original_filename}",
+                    task_type='video_conversion',
+                    task_params={'video_file_id': video_file.id},
+                    user=request.user,
+                    priority=0,  # Default priority
+                    max_retries=3
+                )
+                
+                messages.success(request, f'Video "{video_file.original_filename}" uploaded successfully! It has been added to the conversion queue (Task #{task.id}).')
+                
             except Exception as e:
-                messages.warning(request, f'Video "{video_file.original_filename}" uploaded successfully, but thumbnail generation failed: {str(e)}')
+                # If queue fails, fallback to immediate processing
+                messages.warning(request, f'Queue system unavailable, processing immediately. Error: {e}')
+                
+                # Fallback to old method
+                def process_video_background():
+                    try:
+                        processor = VideoProcessor()
+                        success = processor.process_uploaded_video(video_file)
+                        
+                        if success:
+                            try:
+                                thumbnail_path = generate_thumbnail(video_file.video_file.path)
+                                if thumbnail_path:
+                                    video_file.thumbnail.name = thumbnail_path.replace('media/', '')
+                                video_file.status = 'processed'
+                            except Exception as e:
+                                print(f"Thumbnail generation failed: {e}")
+                                video_file.status = 'processed'
+                        else:
+                            video_file.status = 'failed'
+                        
+                        video_file.save()
+                        
+                    except Exception as e:
+                        print(f"Video processing failed: {e}")
+                        video_file.status = 'failed'
+                        video_file.save()
+                
+                # Start background processing as fallback
+                thread = threading.Thread(target=process_video_background)
+                thread.daemon = True
+                thread.start()
+                
+                messages.info(request, f'Video processing started in background due to queue unavailability.')
             
             return redirect('video:video_list')
     else:
@@ -122,11 +162,12 @@ def video_list(request):
     total_videos = video_files.count()
     processed_videos = video_files.filter(status='processed').count()
     processing_videos = video_files.filter(status='processing').count()
-    total_size = sum(video.file_size or 0 for video in video_files)
+    total_size_bytes = sum(video.file_size or 0 for video in video_files)
+    total_size_mb = round(total_size_bytes / (1024 * 1024), 2)  # Convert to MB and round to 2 decimal places
     
     # Get first page of data for initial load
     page = 1
-    page_size = 9
+    page_size = 8
     paginator = Paginator(video_files.order_by('-created_at'), page_size)
     
     try:
@@ -148,6 +189,13 @@ def video_list(request):
             'resolution': video_file.resolution,
             'status': video_file.status,
             'thumbnail': video_file.thumbnail.url if video_file.thumbnail else None,
+            'video_url': video_file.video_file.url if video_file.video_file else None,
+            'conversion_status': video_file.conversion_status,
+            'conversion_progress': video_file.conversion_progress,
+            'is_web_compatible': video_file.is_web_compatible,
+            'conversion_error': video_file.conversion_error,
+            'original_format': video_file.original_format,
+            'converted_format': video_file.converted_format,
         })
     
     return render(request, 'file_processor/video/video_list.html', {
@@ -156,7 +204,7 @@ def video_list(request):
             'totalVideos': total_videos,
             'processedVideos': processed_videos,
             'processingVideos': processing_videos,
-            'totalSize': total_size,
+            'totalSize': total_size_mb,
         })
     })
 
@@ -222,7 +270,19 @@ def get_video_list_data(request):
             'resolution': video_file.resolution,
             'status': video_file.status,
             'thumbnail': video_file.thumbnail.url if video_file.thumbnail else None,
+            'video_url': video_file.video_file.url if video_file.video_file else None,
+            'conversion_status': video_file.conversion_status,
+            'conversion_progress': video_file.conversion_progress,
+            'is_web_compatible': video_file.is_web_compatible,
+            'conversion_error': video_file.conversion_error,
+            'original_format': video_file.original_format,
+            'converted_format': video_file.converted_format,
         })
+    
+    # Calculate total size in MB
+    user_videos = VideoFile.objects.filter(user=user)
+    total_size_bytes = sum(video.file_size or 0 for video in user_videos)
+    total_size_mb = round(total_size_bytes / (1024 * 1024), 2)
     
     # Return JSON response
     return JsonResponse({
@@ -236,10 +296,10 @@ def get_video_list_data(request):
             'pageSize': page_size,
         },
         'statistics': {
-            'totalVideos': VideoFile.objects.filter(user=user).count(),
-            'processedVideos': VideoFile.objects.filter(user=user, status='processed').count(),
-            'processingVideos': VideoFile.objects.filter(user=user, status='processing').count(),
-            'totalSize': sum(video.file_size or 0 for video in VideoFile.objects.filter(user=user)),
+            'totalVideos': user_videos.count(),
+            'processedVideos': user_videos.filter(status='processed').count(),
+            'processingVideos': user_videos.filter(status='processing').count(),
+            'totalSize': total_size_mb,
         }
     })
 
@@ -295,6 +355,22 @@ def delete_analysis(request, analysis_id):
     analysis = get_object_or_404(VideoAnalysis, id=analysis_id, user=request.user)
     analysis.delete()
     messages.success(request, 'Analysis deleted successfully!')
+
+
+@login_required
+def video_conversion_status(request, video_file_id):
+    """Get conversion status for a specific video file"""
+    video_file = get_object_or_404(VideoFile, id=video_file_id, user=request.user)
+    
+    return JsonResponse({
+        'conversion_status': video_file.conversion_status,
+        'conversion_progress': video_file.conversion_progress,
+        'is_web_compatible': video_file.is_web_compatible,
+        'conversion_error': video_file.conversion_error,
+        'status': video_file.status,
+        'original_format': video_file.original_format,
+        'converted_format': video_file.converted_format,
+    })
     return redirect('video:video_analysis_history')
 
 

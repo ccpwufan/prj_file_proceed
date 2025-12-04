@@ -11,6 +11,7 @@ class VideoFile(models.Model):
     duration = models.FloatField(null=True, blank=True)  # Video duration in seconds
     status = models.CharField(max_length=20, default='uploaded', choices=[
         ('uploaded', 'Uploaded'),
+        ('converting', 'Converting'),
         ('processing', 'Processing'),
         ('processed', 'Processed'),
         ('failed', 'Failed'),
@@ -18,6 +19,23 @@ class VideoFile(models.Model):
     thumbnail = models.ImageField(upload_to='video_thumbnails/', null=True, blank=True)
     file_size = models.BigIntegerField(null=True, blank=True)  # File size in bytes
     resolution = models.CharField(max_length=20, null=True, blank=True)  # Resolution
+    
+    # Conversion related fields
+    original_file = models.FileField(upload_to='videos/original/', null=True, blank=True)  # Original uploaded file
+    converted_file = models.FileField(upload_to='videos/converted/', null=True, blank=True)  # Converted web-compatible file
+    conversion_status = models.CharField(max_length=20, default='pending', choices=[
+        ('pending', 'Pending'),
+        ('converting', 'Converting'),
+        ('completed', 'Completed'),
+        ('failed', 'Failed'),
+        ('skipped', 'Skipped'),  # Already compatible
+    ])
+    conversion_progress = models.IntegerField(default=0)  # Progress percentage 0-100
+    conversion_error = models.TextField(blank=True, null=True)  # Error message if conversion failed
+    conversion_log = models.TextField(blank=True, null=True)  # Conversion log
+    is_web_compatible = models.BooleanField(default=False)  # Whether the video is web compatible
+    original_format = models.CharField(max_length=50, blank=True, null=True)  # Original format info
+    converted_format = models.CharField(max_length=50, blank=True, null=True)  # Converted format info
 
     class Meta:
         ordering = ['-created_at']

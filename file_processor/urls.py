@@ -15,4 +15,7 @@ urlpatterns = [
     
     # Video processing URLs
     path('video/', include('file_processor.video.urls')),
+    
+    # Queue management URLs
+    path('queue/', include('file_processor.queue.urls')),
 ]
