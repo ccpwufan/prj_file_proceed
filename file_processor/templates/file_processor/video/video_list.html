@@ -10,14 +10,6 @@
             <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
                 <h3 class="text-lg leading-6 font-medium text-gray-900">Video Review</h3>
                 <div class="mt-4 md:mt-0 flex space-x-3">
-                    <form action="{% url 'video:generate_all_thumbnails' %}" method="POST" class="inline">
-                        {% csrf_token %}
-                        <button type="submit" 
-                                onclick="return confirm('Generate thumbnails for all videos without thumbnails?')"
-                                class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-md text-sm font-medium">
-                            Generate All Thumbnails
-                        </button>
-                    </form>
                     <button @click="refreshData()" 
                             class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-medium">
                         Refresh
@@ -164,6 +156,11 @@
                             <!-- Status Badge -->
                             <div class="absolute top-2 right-2">
                                 <div class="flex flex-col space-y-1">
+                                    <!-- Video ID Display -->
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-purple-100 text-purple-800">
+                                        ID: <span x-text="video.id"></span>
+                                    </span>
+                                    
                                     <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full"
                                           :class="getStatusClass(video.status)"
                                           x-text="getStatusText(video.status)"></span>
@@ -235,14 +232,7 @@
                                    class="flex-1 text-center px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-md">
                                     Analyze
                                 </a>
-                                <form :action="`/video/generate-thumbnail/${video.id}/`" method="POST" class="inline">
-                                    {% csrf_token %}
-                                    <button type="submit" 
-                                            x-show="!video.thumbnail"
-                                            class="px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm rounded-md">
-                                        Generate Thumbnail
-                                    </button>
-                                </form>
+                                
                                 <button @click="deleteVideo(video.id)" 
                                         class="px-3 py-2 bg-red-600 hover:bg-red-700 text-white text-sm rounded-md">
                                     Delete
@@ -293,7 +283,7 @@ function videoList() {
         sortField: 'created_at',
         sortOrder: 'desc',
         currentPage: 1,
-        pageSize: 9,
+        pageSize: 8,
         totalPages: 1,
         totalItems: 0,
         loading: false,

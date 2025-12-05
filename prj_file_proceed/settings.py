@@ -112,6 +112,12 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
+        'OPTIONS': {
+            'timeout': 30,
+            'init_command': "PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL; PRAGMA cache_size=10000; PRAGMA temp_store=memory;",
+            'check_same_thread': False,  # 允许多线程访问
+        },
+        'CONN_MAX_AGE': 60,  # 连接持久化60秒
     }
 }
 

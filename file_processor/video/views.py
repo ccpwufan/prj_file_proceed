@@ -1,5 +1,4 @@
 import json
-import threading
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
@@ -48,40 +47,8 @@ def video_upload(request):
                 messages.success(request, f'Video "{video_file.original_filename}" uploaded successfully! It has been added to the conversion queue (Task #{task.id}).')
                 
             except Exception as e:
-                # If queue fails, fallback to immediate processing
-                messages.warning(request, f'Queue system unavailable, processing immediately. Error: {e}')
-                
-                # Fallback to old method
-                def process_video_background():
-                    try:
-                        processor = VideoProcessor()
-                        success = processor.process_uploaded_video(video_file)
-                        
-                        if success:
-                            try:
-                                thumbnail_path = generate_thumbnail(video_file.video_file.path)
-                                if thumbnail_path:
-                                    video_file.thumbnail.name = thumbnail_path.replace('media/', '')
-                                video_file.status = 'processed'
-                            except Exception as e:
-                                print(f"Thumbnail generation failed: {e}")
-                                video_file.status = 'processed'
-                        else:
-                            video_file.status = 'failed'
-                        
-                        video_file.save()
-                        
-                    except Exception as e:
-                        print(f"Video processing failed: {e}")
-                        video_file.status = 'failed'
-                        video_file.save()
-                
-                # Start background processing as fallback
-                thread = threading.Thread(target=process_video_background)
-                thread.daemon = True
-                thread.start()
-                
-                messages.info(request, f'Video processing started in background due to queue unavailability.')
+                # Queue system unavailable - show error only
+                messages.error(request, f'Queue system is currently unavailable. Please try again later. Error: {e}')
             
             return redirect('video:video_list')
     else:
@@ -215,7 +182,7 @@ def get_video_list_data(request):
     
     # Get parameters
     page = request.GET.get('page', 1)
-    page_size = request.GET.get('pageSize', 9)
+    page_size = request.GET.get('pageSize', 8)
     search_query = request.GET.get('search', '')
     filter_status = request.GET.get('status', '')
     sort_field = request.GET.get('sortField', 'created_at')
@@ -429,30 +396,3 @@ def generate_video_thumbnail(request, video_file_id):
     return redirect('video:video_list')
 
 
-@require_POST
-@login_required
-def generate_all_thumbnails(request):
-    """Generate thumbnails for all videos without thumbnails"""
-    videos_without_thumbnails = VideoFile.objects.filter(user=request.user, thumbnail='')
-    
-    success_count = 0
-    error_count = 0
-    
-    for video_file in videos_without_thumbnails:
-        try:
-            thumbnail_path = generate_thumbnail(video_file.video_file.path)
-            if thumbnail_path:
-                video_file.thumbnail.name = thumbnail_path.replace('media/', '')
-                video_file.save()
-                success_count += 1
-            else:
-                error_count += 1
-        except Exception:
-            error_count += 1
-    
-    if success_count > 0:
-        messages.success(request, f'Successfully generated {success_count} thumbnail(s)!')
-    if error_count > 0:
-        messages.warning(request, f'Failed to generate {error_count} thumbnail(s).')
-    
-    return redirect('video:video_list')
