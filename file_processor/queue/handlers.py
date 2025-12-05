@@ -209,6 +209,7 @@ class BaseTaskHandler(ABC):
         
         # Also save to task execution log
         self.task.log(message)
+        self.task.save(update_fields=['execution_log'])
     
     def check_timeout(self):
         """

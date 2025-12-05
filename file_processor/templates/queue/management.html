@@ -3,162 +3,74 @@
 {% block title %}Queue Management{% endblock %}
 
 {% block extra_css %}
-<style>
-.queue-stats-card {
-    transition: all 0.3s ease;
-}
-.queue-stats-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-}
-.task-item {
-    border-left: 4px solid #dee2e6;
-    transition: border-color 0.3s ease;
-}
-.task-item.status-pending {
-    border-left-color: #f59e0b;
-}
-.task-item.status-processing {
-    border-left-color: #06b6d4;
-}
-.task-item.status-completed {
-    border-left-color: #10b981;
-}
-.task-item.status-failed {
-    border-left-color: #ef4444;
-}
-.progress-container {
-    height: 4px;
-    background-color: #e5e7eb;
-    border-radius: 2px;
-    overflow: hidden;
-}
-.progress-bar {
-    height: 100%;
-    background-color: #3b82f6;
-    transition: width 0.3s ease;
-}
-</style>
+<!-- Custom styles replaced with Tailwind CSS classes -->
 {% endblock %}
 
 {% block content %}
-<div x-data="queueManagement()" x-init="init()" class="container mx-auto px-4 mt-4">
+<div x-data="queueManagement()" x-init="init()" class="px-4 mt-4">
 
-    <div class="flex justify-between items-center mb-4">
-        <h1 class="text-2xl font-bold"><i class="fas fa-tasks mr-2"></i>Queue Management</h1>
-        <div class="flex gap-2">
-            {% if queue_stats.manager.is_running %}
-            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
-                <i class="fas fa-play mr-1"></i>
-                Running
-            </span>
+    <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center">
+            <h1 class="text-2xl font-bold"><i class="fas fa-tasks mr-2"></i>Queue Management</h1>
+            <div class="flex gap-2 ml-4">
+                {% if queue_stats.manager.is_running %}
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                    <i class="fas fa-play mr-1"></i>
+                    Running
+                </span>
+                {% else %}
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
+                    <i class="fas fa-stop mr-1"></i>
+                    Stopped
+                </span>
+                {% endif %}
+                {% if queue_stats.manager.is_paused %}
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">
+                    <i class="fas fa-pause mr-1"></i>
+                    Paused
+                </span>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Queue Control Buttons -->
+        <form method="post" class="inline-flex flex-wrap gap-2">
+            {% csrf_token %}
+            {% if not queue_stats.manager.is_running %}
+            <button type="submit" name="action" value="start" class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                <i class="fas fa-play mr-1"></i>Start Queue
+            </button>
             {% else %}
-            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
-                <i class="fas fa-stop mr-1"></i>
-                Stopped
-            </span>
+            <button type="submit" name="action" value="stop" class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                <i class="fas fa-stop mr-1"></i>Stop Queue
+            </button>
+            {% if not queue_stats.manager.is_paused %}
+            <button type="submit" name="action" value="pause" class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-yellow-600 hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500">
+                <i class="fas fa-pause mr-1"></i>Pause
+            </button>
+            {% else %}
+            <button type="submit" name="action" value="resume" class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                <i class="fas fa-play mr-1"></i>Resume
+            </button>
             {% endif %}
-            {% if queue_stats.manager.is_paused %}
-            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">
-                <i class="fas fa-pause mr-1"></i>
-                Paused
-            </span>
             {% endif %}
-        </div>
+        </form>
     </div>
 
-    <!-- Queue Control Buttons -->
-    <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-4">
-        <div class="p-6">
-            <h5 class="text-lg font-semibold mb-3">Queue Control</h5>
-            <form method="post" class="inline-flex flex-wrap gap-2">
-                {% csrf_token %}
-                {% if not queue_stats.manager.is_running %}
-                <button type="submit" name="action" value="start" class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
-                    <i class="fas fa-play mr-1"></i>Start Queue
-                </button>
-                {% else %}
-                <button type="submit" name="action" value="stop" class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
-                    <i class="fas fa-stop mr-1"></i>Stop Queue
-                </button>
-                {% if not queue_stats.manager.is_paused %}
-                <button type="submit" name="action" value="pause" class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-yellow-600 hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500">
-                    <i class="fas fa-pause mr-1"></i>Pause
-                </button>
-                {% else %}
-                <button type="submit" name="action" value="resume" class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                    <i class="fas fa-play mr-1"></i>Resume
-                </button>
-                {% endif %}
-                {% endif %}
-                <button type="submit" name="action" value="clear_failed" class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                    <i class="fas fa-trash mr-1"></i>Clear Failed
-                </button>
-            </form>
-            <div class="inline-flex gap-2 ml-4">
-                <a href="{% url 'queue:task_list' %}" class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                    <i class="fas fa-list mr-1"></i>View All Tasks
-                </a>
-                <a href="{% url 'queue:statistics' %}" class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                    <i class="fas fa-chart-bar mr-1"></i>Statistics
-                </a>
-            </div>
-        </div>
-    </div>
-
-    <!-- Queue Statistics -->
-    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-4">
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 queue-stats-card">
-            <div class="p-4 text-center">
-                <h3 class="text-2xl font-bold text-yellow-600">{{ queue_stats.pending }}</h3>
-                <p class="text-sm text-gray-600">Pending</p>
-            </div>
-        </div>
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 queue-stats-card">
-            <div class="p-4 text-center">
-                <h3 class="text-2xl font-bold text-cyan-600">{{ queue_stats.processing }}</h3>
-                <p class="text-sm text-gray-600">Processing</p>
-            </div>
-        </div>
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 queue-stats-card">
-            <div class="p-4 text-center">
-                <h3 class="text-2xl font-bold text-gray-500">{{ queue_stats.retrying }}</h3>
-                <p class="text-sm text-gray-600">Retrying</p>
-            </div>
-        </div>
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 queue-stats-card">
-            <div class="p-4 text-center">
-                <h3 class="text-2xl font-bold text-green-600">{{ queue_stats.completed }}</h3>
-                <p class="text-sm text-gray-600">Completed</p>
-            </div>
-        </div>
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 queue-stats-card">
-            <div class="p-4 text-center">
-                <h3 class="text-2xl font-bold text-red-600">{{ queue_stats.failed }}</h3>
-                <p class="text-sm text-gray-600">Failed</p>
-            </div>
-        </div>
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 queue-stats-card">
-            <div class="p-4 text-center">
-                <h3 class="text-2xl font-bold text-blue-600">{{ queue_stats.total }}</h3>
-                <p class="text-sm text-gray-600">Total</p>
-            </div>
-        </div>
-    </div>
 
 
 
 
 
     <!-- Task List -->
-    <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 mx-4">
         <div class="px-6 py-4 border-b border-gray-200">
             <h5 class="text-lg font-semibold"><i class="fas fa-list mr-2"></i>Task List</h5>
         </div>
         <div class="p-6">
             <!-- Filters -->
             <form method="get" class="mb-6">
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Type</label>
                         <select name="task_type" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
@@ -191,16 +103,46 @@
                         <input type="date" name="created_to" value="{{ created_to_filter }}" 
                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
                     </div>
-                </div>
-                <div class="flex gap-2">
-                    <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                        <i class="fas fa-filter mr-2"></i>Filter
-                    </button>
-                    <a href="{% url 'queue:management' %}" class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                        <i class="fas fa-times mr-2"></i>Clear
-                    </a>
+                    <div class="flex items-end">
+                        <button type="submit" class="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                            <i class="fas fa-filter mr-2"></i>Filter
+                        </button>
+                    </div>
                 </div>
             </form>
+
+            <!-- Batch Operations -->
+            <div class="mb-4">
+                <!-- Batch Selection Info -->
+                <div class="flex items-center justify-between">
+                    <div class="text-sm text-gray-700">
+                        <span x-show="selectedTasks.length === 0">No tasks selected</span>
+                        <span x-show="selectedTasks.length > 0" x-text="`${selectedTasks.length} task(s) selected`"></span>
+                    </div>
+                    <div class="flex gap-2">
+                        <button @click="deleteSelectedTasks()" 
+                                x-bind:disabled="selectedTasks.length === 0"
+                                class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed">
+                            <i class="fas fa-trash mr-2"></i>Delete Selected Tasks
+                        </button>
+                        <button @click="cancelSelectedTasks()" 
+                                x-bind:disabled="selectedTasks.length === 0"
+                                class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-yellow-600 hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 disabled:opacity-50 disabled:cursor-not-allowed">
+                            <i class="fas fa-times mr-2"></i>Cancel Selected Tasks
+                        </button>
+                        <button @click="retrySelectedTasks()" 
+                                x-bind:disabled="selectedTasks.length === 0"
+                                class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed">
+                            <i class="fas fa-redo mr-2"></i>Retry Selected Tasks
+                        </button>
+                        <button @click="clearSelection()" 
+                                x-show="selectedTasks.length > 0"
+                                class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                            <i class="fas fa-times mr-2"></i>Clear Selection
+                        </button>
+                    </div>
+                </div>
+            </div>
 
             <!-- Task Table -->
             {% if tasks %}
@@ -208,22 +150,41 @@
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
                         <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-12">
+                                <input type="checkbox" 
+                                       x-model="selectAll" 
+                                       @change="toggleSelectAll()"
+                                       class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                            </th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Task Name</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Retry Count</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created At</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Start At</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Completed At</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Duration</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Message</th>
+
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
                         {% for task in tasks %}
-                        <tr class="task-item status-{{ task.status }}">
+                        <tr x-data="{ taskStatus: '{{ task.status }}', taskId: {{ task.id }} }">
+                            <td class="px-6 py-4 whitespace-nowrap">
+
+                                <input type="checkbox" 
+                                       :value="{{ task.id }}"
+                                       x-model="selectedTasks"
+                                       class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded task-checkbox">
+
+                            </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ task.id }}</td>
                             <td class="px-6 py-4 whitespace-nowrap">
-                                <button @click="openTaskDetail({{ task.id }})" class="text-sm text-blue-600 hover:text-blue-900 text-left">
+                                <button @click="openTaskDetail({{ task.id }})" 
+                                        class="text-sm text-blue-600 hover:text-blue-800 hover:underline text-left">
                                     {{ task.task_name|truncatechars:40 }}
                                 </button>
                             </td>
@@ -245,8 +206,11 @@
                                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-900 text-white">Cancelled</span>
                                 {% endif %}
                             </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ task.retry_count }}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ task.user.username|default:"System" }}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ task.created_at|date:"Y-m-d H:i" }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{% if task.started_at %}{{ task.started_at|date:"Y-m-d H:i" }}{% else %}<span class="text-gray-400">-</span>{% endif %}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{% if task.completed_at %}{{ task.completed_at|date:"Y-m-d H:i" }}{% else %}<span class="text-gray-400">-</span>{% endif %}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                 {% if task.started_at and task.completed_at %}
                                 {% with duration=task.completed_at|timeuntil:task.started_at %}
@@ -256,11 +220,10 @@
                                 <span class="text-gray-400">-</span>
                                 {% endif %}
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                <button @click="openTaskDetail({{ task.id }})" class="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                                    <i class="fas fa-eye"></i>
-                                </button>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm" id="message-{{ task.id }}">
+                                <!-- Message will be displayed here -->
                             </td>
+
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -315,7 +278,7 @@
 <div x-show="showTaskModal" 
      x-cloak
      class="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4">
-    <div @click.away="closeTaskModal()" class="container mx-auto max-w-7xl bg-white rounded-lg p-6 max-h-[90vh] overflow-y-auto">
+    <div @click.away="closeTaskModal()" class="w-full max-w-7xl bg-white rounded-lg p-6 max-h-[90vh] overflow-y-auto">
         <div class="flex justify-between items-center mb-4 border-b pb-4">
             <h3 class="text-lg font-bold">Task Details</h3>
             <button @click="closeTaskModal()" class="text-gray-500 hover:text-gray-700">
@@ -334,11 +297,16 @@
 
 {% block extra_js %}
 <script>
+
+
 function queueManagement() {
     return {
         showTaskModal: false,
         loadingTask: false,
         taskDetailHtml: '',
+        selectedTasks: [],
+        selectAll: false,
+        rowMessages: new Map(), // Store messages for each row
         
         init() {
             console.log('queueManagement init called');
@@ -348,8 +316,7 @@ function queueManagement() {
                 this.refreshQueueStats();
             }, 30000);
             
-            // Update progress bars on load
-            this.updateProgressBars();
+            // Progress bars functionality removed
             
             // Set up event listeners for modal events
             this.$el.addEventListener('close-modal', () => {
@@ -357,15 +324,7 @@ function queueManagement() {
                 this.closeTaskModal();
             });
             
-            this.$el.addEventListener('retry-task', async (event) => {
-                console.log('retry-task event received', event.detail);
-                await this.retryTask(event.detail.taskId);
-            });
-            
-            this.$el.addEventListener('cancel-task', async (event) => {
-                console.log('cancel-task event received', event.detail);
-                await this.cancelTask(event.detail.taskId);
-            });
+
         },
         
         async openTaskDetail(taskId) {
@@ -413,96 +372,9 @@ function queueManagement() {
             this.taskDetailHtml = '';
         },
         
-        testModal() {
-            console.log('testModal called - setting showTaskModal to true manually');
-            this.showTaskModal = true;
-            this.loadingTask = false;
-            this.taskDetailHtml = '<div class="p-8 text-center"><h3 class="text-lg font-bold mb-4">Test Modal Content</h3><p class="text-gray-600">This is a test to verify the modal is working.</p></div>';
-            console.log('testModal completed - showTaskModal:', this.showTaskModal);
-        },
+
         
-        refreshQueueStats() {
-            // Optional: Implement queue stats refresh
-            console.log('Refreshing queue stats...');
-        },
-        
-        updateProgressBars() {
-            document.querySelectorAll('.progress-container').forEach(container => {
-                const progressBar = container.querySelector('.progress-bar');
-                if (progressBar) {
-                    const progress = progressBar.getAttribute('data-progress');
-                    if (progress) {
-                        progressBar.style.width = progress + '%';
-                    }
-                }
-            });
-        },
-        
-        async retryTask(taskId) {
-            if (!confirm('Are you sure you want to retry this task?')) {
-                return;
-            }
-            
-            try {
-                const response = await fetch(`/queue/task_detail/${taskId}/retry/`, {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRFToken': this.getCsrfToken(),
-                        'Content-Type': 'application/json',
-                    },
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    alert('Task retry initiated successfully');
-                    this.closeTaskModal();
-                    // Refresh the page preserving filters and current page
-                    setTimeout(() => {
-                        const url = new URL(window.location);
-                        window.location.href = url.toString();
-                    }, 1000);
-                } else {
-                    alert('Failed to retry task: ' + data.message);
-                }
-            } catch (error) {
-                console.error('Retry error:', error);
-                alert('Retry failed');
-            }
-        },
-        
-        async cancelTask(taskId) {
-            if (!confirm('Are you sure you want to cancel this task?')) {
-                return;
-            }
-            
-            try {
-                const response = await fetch(`/queue/task_detail/${taskId}/cancel/`, {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRFToken': this.getCsrfToken(),
-                        'Content-Type': 'application/json',
-                    },
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    alert('Task cancelled successfully');
-                    this.closeTaskModal();
-                    // Refresh the page preserving filters and current page
-                    setTimeout(() => {
-                        const url = new URL(window.location);
-                        window.location.href = url.toString();
-                    }, 1000);
-                } else {
-                    alert('Failed to cancel task: ' + data.message);
-                }
-            } catch (error) {
-                console.error('Cancel error:', error);
-                alert('Cancel failed');
-            }
-        },
+
         
         getCsrfToken() {
             // Get CSRF token from cookie
@@ -520,6 +392,18 @@ function queueManagement() {
             }
             return cookieValue;
         },
+        
+
+        
+        refreshQueueStats() {
+            // Optional: Implement queue stats refresh
+            console.log('Refreshing queue stats...');
+        },
+        
+
+        
+
+
         
         getStatusClass(status) {
             const classes = {
@@ -551,7 +435,302 @@ function queueManagement() {
                 '3': 'bg-red-100 text-red-800'
             };
             return classes[priority] || 'bg-gray-100 text-gray-800';
-        }
+        },
+        
+        // Batch selection methods
+        toggleSelectAll() {
+            const checkboxes = document.querySelectorAll('.task-checkbox');
+            if (this.selectAll) {
+                this.selectedTasks = Array.from(checkboxes).map(cb => parseInt(cb.value));
+            } else {
+                this.selectedTasks = [];
+            }
+        },
+        
+        clearSelection() {
+            this.selectedTasks = [];
+            this.selectAll = false;
+            const checkboxes = document.querySelectorAll('.task-checkbox');
+            checkboxes.forEach(cb => cb.checked = false);
+        },
+        
+        showMessage(taskId, text, type) {
+            // Store message in rowMessages Map
+            this.rowMessages.set(taskId, {
+                text: text,
+                type: type,
+                timestamp: Date.now()
+            });
+            
+            // Update DOM to show message
+            const messageCell = document.getElementById(`message-${taskId}`);
+            if (messageCell) {
+                let colorClass, iconClass;
+                if (type === 'success') {
+                    colorClass = 'text-green-600';
+                    iconClass = 'fa-check-circle';
+                } else if (type === 'error') {
+                    colorClass = 'text-red-600';
+                    iconClass = 'fa-exclamation-circle';
+                } else if (type === 'warning') {
+                    colorClass = 'text-yellow-600';
+                    iconClass = 'fa-exclamation-triangle';
+                } else {
+                    colorClass = 'text-gray-600';
+                    iconClass = 'fa-info-circle';
+                }
+                
+                messageCell.innerHTML = `
+                    <div x-show="true" 
+                         x-transition:enter="transition ease-out duration-300"
+                         x-transition:enter-start="opacity-0"
+                         x-transition:enter-end="opacity-100"
+                         class="${colorClass} text-xs">
+                        <i class="fas mr-1 ${iconClass}"></i>
+                        ${text}
+                    </div>
+                `;
+            }
+            
+            // Auto-hide success messages after 5 seconds, error messages after 10 seconds
+            const hideDelay = type === 'success' ? 5000 : 10000;
+            setTimeout(() => {
+                this.clearRowMessage(taskId);
+            }, hideDelay);
+        },
+        
+        clearRowMessage(taskId) {
+            // Remove from Map
+            this.rowMessages.delete(taskId);
+            
+            // Clear DOM
+            const messageCell = document.getElementById(`message-${taskId}`);
+            if (messageCell) {
+                messageCell.innerHTML = '';
+            }
+        },
+        
+        hideTaskRow(taskId) {
+            // Find and remove the table row for the deleted task
+            const row = document.querySelector(`tr:has(input[value="${taskId}"])`);
+            if (row) {
+                row.style.transition = 'opacity 0.3s, transform 0.3s';
+                row.style.opacity = '0';
+                row.style.transform = 'translateX(-20px)';
+                setTimeout(() => {
+                    row.remove();
+                }, 300);
+            }
+        },
+        
+        updateTaskStatus(taskId, newStatus) {
+            // Find and update the status cell for the cancelled task
+            const row = document.querySelector(`tr:has(input[value="${taskId}"])`);
+            if (row) {
+                const statusCell = row.querySelector('td:nth-child(5)'); // Status column
+                if (statusCell) {
+                    // Update status display
+                    const statusSpan = statusCell.querySelector('span');
+                    if (statusSpan) {
+                        if (newStatus === 'cancelled') {
+                            statusSpan.className = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-900 text-white';
+                            statusSpan.textContent = 'Cancelled';
+                        } else if (newStatus === 'pending') {
+                            statusSpan.className = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800';
+                            statusSpan.textContent = 'Pending';
+                        }
+                    }
+                }
+                // Remove checkbox for cancelled task
+                if (newStatus === 'cancelled') {
+                    const checkboxCell = row.querySelector('td:first-child');
+                    if (checkboxCell) {
+                        checkboxCell.innerHTML = '<div class="w-4 h-4"></div>';
+                    }
+                }
+            }
+        },
+        
+        async deleteSelectedTasks() {
+            if (this.selectedTasks.length === 0) {
+                return;
+            }
+            
+            const confirmMessage = `Are you sure you want to delete ${this.selectedTasks.length} selected task(s)?\n\nThis action cannot be undone.`;
+            if (!confirm(confirmMessage)) {
+                return;
+            }
+            
+            // Define allowed statuses for deletion
+            const allowedStatuses = ['completed', 'failed', 'cancelled'];
+            
+            for (const taskId of this.selectedTasks) {
+                try {
+                    // Get task status from the DOM
+                    const taskRow = document.querySelector(`tr:has(input[value="${taskId}"])`);
+                    if (!taskRow) {
+                        this.showMessage(taskId, 'Task not found', 'error');
+                        continue;
+                    }
+                    
+                    const taskStatus = taskRow._x_dataStack?.[0]?.taskStatus;
+                    
+                    // Frontend validation
+                    if (!allowedStatuses.includes(taskStatus)) {
+                        this.showMessage(taskId, `Cannot delete task in status: ${taskStatus}`, 'warning');
+                        continue;
+                    }
+                    
+                    // Backend request
+                    const response = await fetch('/queue/delete-task/', {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': this.getCsrfToken(),
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            task_id: taskId
+                        })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        // Remove task from selected list and hide row
+                        this.selectedTasks = this.selectedTasks.filter(id => id !== taskId);
+                        this.hideTaskRow(taskId);
+                    } else {
+                        // Show error message in the row's Message column
+                        this.showMessage(taskId, `Failed: ${data.message}`, 'error');
+                    }
+                } catch (error) {
+                    // Show error message in the row's Message column
+                    this.showMessage(taskId, `Error: ${error.message}`, 'error');
+                }
+            }
+            
+            this.selectAll = false;
+        },
+        
+        async cancelSelectedTasks() {
+            if (this.selectedTasks.length === 0) {
+                return;
+            }
+            
+            const confirmMessage = `Are you sure you want to cancel ${this.selectedTasks.length} selected task(s)?\\n\\nThis action cannot be undone.`;
+            if (!confirm(confirmMessage)) {
+                return;
+            }
+            
+            // Define allowed statuses for cancellation
+            const allowedStatuses = ['pending', 'processing', 'retrying'];
+            
+            for (const taskId of this.selectedTasks) {
+                try {
+                    // Get task status from the DOM
+                    const taskRow = document.querySelector(`tr:has(input[value="${taskId}"])`);
+                    if (!taskRow) {
+                        this.showMessage(taskId, 'Task not found', 'error');
+                        continue;
+                    }
+                    
+                    const taskStatus = taskRow._x_dataStack?.[0]?.taskStatus;
+                    
+                    // Frontend validation
+                    if (!allowedStatuses.includes(taskStatus)) {
+                        this.showMessage(taskId, `Cannot cancel task in status: ${taskStatus}`, 'warning');
+                        continue;
+                    }
+                    
+                    // Backend request
+                    const response = await fetch(`/queue/task_detail/${taskId}/cancel/`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': this.getCsrfToken(),
+                            'Content-Type': 'application/json',
+                        },
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        // Remove task from selected list
+                        this.selectedTasks = this.selectedTasks.filter(id => id !== taskId);
+                        this.updateTaskStatus(taskId, 'cancelled');
+                        // Show success message in the row's Message column
+                        this.showMessage(taskId, 'Cancelled successfully', 'success');
+                    } else {
+                        // Show error message in the row's Message column
+                        this.showMessage(taskId, `Failed: ${data.message}`, 'error');
+                    }
+                } catch (error) {
+                    // Show error message in the row's Message column
+                    this.showMessage(taskId, `Error: ${error.message}`, 'error');
+                }
+            }
+            
+            this.selectAll = false;
+        },
+        
+        async retrySelectedTasks() {
+            if (this.selectedTasks.length === 0) {
+                return;
+            }
+            
+            const confirmMessage = `Are you sure you want to retry ${this.selectedTasks.length} selected task(s)?`;
+            if (!confirm(confirmMessage)) {
+                return;
+            }
+            
+            // Define allowed statuses for retry
+            const allowedStatuses = ['failed', 'completed', 'cancelled'];
+            
+            for (const taskId of this.selectedTasks) {
+                try {
+                    // Get task status from the DOM
+                    const taskRow = document.querySelector(`tr:has(input[value="${taskId}"])`);
+                    if (!taskRow) {
+                        this.showMessage(taskId, 'Task not found', 'error');
+                        continue;
+                    }
+                    
+                    const taskStatus = taskRow._x_dataStack?.[0]?.taskStatus;
+                    
+                    // Frontend validation
+                    if (!allowedStatuses.includes(taskStatus)) {
+                        this.showMessage(taskId, `Cannot retry task in status: ${taskStatus}`, 'warning');
+                        continue;
+                    }
+                    
+                    // Backend request
+                    const response = await fetch(`/queue/task_detail/${taskId}/retry/`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': this.getCsrfToken(),
+                            'Content-Type': 'application/json',
+                        },
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        // Remove task from selected list
+                        this.selectedTasks = this.selectedTasks.filter(id => id !== taskId);
+                        this.updateTaskStatus(taskId, 'pending');
+                        // Show success message in the row's Message column
+                        this.showMessage(taskId, 'Retry queued successfully', 'success');
+                    } else {
+                        // Show error message in the row's Message column
+                        this.showMessage(taskId, `Failed: ${data.message}`, 'error');
+                    }
+                } catch (error) {
+                    // Show error message in the row's Message column
+                    this.showMessage(taskId, `Error: ${error.message}`, 'error');
+                }
+            }
+            
+            this.selectAll = false;
+        },
     }
 }
 </script>

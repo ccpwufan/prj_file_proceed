@@ -20,13 +20,11 @@ urlpatterns = [
     # User views
     path('my-tasks/', views.user_task_list, name='user_task_list'),
     
-    # Statistics
-    path('statistics/', views.queue_statistics, name='statistics'),
+
     
     # Task type registry
     path('task-types/', views.task_type_registry, name='task_type_registry'),
     
-    # Cleanup actions
-    path('clear-failed/', views.clear_failed_tasks, name='clear_failed'),
-    path('clear-completed/', views.clear_completed_tasks, name='clear_completed'),
+    # Task operations
+    path('delete-task/', views.delete_task, name='delete_task'),
 ]

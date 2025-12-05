@@ -31,7 +31,7 @@ def test_metadata_extraction():
         
         try:
             # Simulate processing (this should extract metadata if missing)
-            success = processor.process_uploaded_video(video_file)
+            success = processor.process_uploaded_video(video_file, progress_callback=None)
             
             # Refresh the object from database
             video_file.refresh_from_db()

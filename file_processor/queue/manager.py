@@ -186,7 +186,7 @@ class QueueManager:
             with transaction.atomic():
                 task = TaskQueue.objects.select_for_update().get(id=task_id)
                 
-                if task.status in ['pending', 'retrying']:
+                if task.status in ['pending', 'processing', 'retrying']:
                     task.mark_cancelled()
                     logger.info(f"Cancelled task {task_id}")
                     return True
@@ -427,7 +427,7 @@ class QueueManager:
 
 
 # Global queue manager instance
-queue_manager = QueueManager(workers_count=2)
+queue_manager = QueueManager(workers_count=1)
 
 
 # Convenience functions for common operations

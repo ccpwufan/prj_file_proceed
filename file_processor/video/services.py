@@ -205,7 +205,7 @@ class VideoConverter:
         
         return metadata
     
-    def convert_video_file(self, video_file):
+    def convert_video_file(self, video_file, progress_callback=None):
         """Convert a VideoFile instance"""
         try:
             input_path = video_file.video_file.path
@@ -241,9 +241,9 @@ class VideoConverter:
             video_file.conversion_progress = 0
             video_file.save()
             
-            # Generate output filename
+            # Generate output filename with video ID prefix
             original_name = Path(input_path).stem
-            output_filename = f"{original_name}_converted.mp4"
+            output_filename = f"{video_file.id}_{original_name}_converted.mp4"
             output_path = os.path.join(
                 settings.MEDIA_ROOT, 
                 'videos', 
@@ -251,13 +251,18 @@ class VideoConverter:
                 output_filename
             )
             
-            # Progress callback
-            def progress_callback(progress):
-                video_file.conversion_progress = progress
-                video_file.save()
+            # Progress callback - use provided callback or default one
+            if progress_callback:
+                # Use the provided progress callback
+                video_progress_callback = progress_callback
+            else:
+                # Use default progress callback that updates video_file
+                def video_progress_callback(progress):
+                    video_file.conversion_progress = progress
+                    video_file.save()
             
             # Convert video
-            success, message = self.convert_video(input_path, output_path, progress_callback)
+            success, message = self.convert_video(input_path, output_path, video_progress_callback)
             
             if success:
                 # Store original file path before deletion
@@ -267,8 +272,8 @@ class VideoConverter:
                 with open(output_path, 'rb') as f:
                     video_file.converted_file.save(output_filename, ContentFile(f.read()))
                 
-                # Update video_file field to point to converted file
-                video_file.video_file = video_file.converted_file
+                # Keep original file reference unchanged - don't update video_file.video_file
+                # This maintains separation between original and converted files for retry scenarios
                 video_file.conversion_status = 'completed'
                 video_file.is_web_compatible = True
                 video_file.converted_format = "MP4 - H.264+AAC"
@@ -309,17 +314,17 @@ class VideoProcessor:
     def __init__(self):
         self.converter = VideoConverter()
     
-    def process_uploaded_video(self, video_file):
+    def process_uploaded_video(self, video_file, progress_callback=None):
         """Process uploaded video including conversion and thumbnail generation"""
         try:
-            # Store original file
+            # Store original file with ID prefix
             if video_file.video_file and not video_file.original_file:
-                original_filename = f"original_{video_file.original_filename}"
+                original_filename = f"{video_file.id}_original_{video_file.original_filename}"
                 with video_file.video_file.open('rb') as src:
                     video_file.original_file.save(original_filename, ContentFile(src.read()))
             
             # Convert video if needed (this will also extract metadata)
-            conversion_success = self.converter.convert_video_file(video_file)
+            conversion_success = self.converter.convert_video_file(video_file, progress_callback=progress_callback)
             
             # If metadata wasn't extracted during conversion (e.g., conversion was skipped), try to extract it now
             if video_file.duration is None or video_file.resolution is None or video_file.file_size is None:

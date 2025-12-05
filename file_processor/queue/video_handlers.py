@@ -7,6 +7,7 @@ including video conversion, thumbnail generation, and video analysis.
 
 import os
 import logging
+from django.conf import settings
 from django.core.files.base import ContentFile
 from django.db import transaction
 from file_processor.video.models import VideoFile, VideoAnalysis
@@ -22,7 +23,7 @@ logger = logging.getLogger(__name__)
     description='Convert video files to web-compatible format',
     default_timeout=600,  # 10 minutes
     default_priority=5,
-    max_concurrent=2,
+    max_concurrent=1,
     default_max_retries=3
 )
 class VideoConversionHandler(BaseTaskHandler):
@@ -51,15 +52,6 @@ class VideoConversionHandler(BaseTaskHandler):
         with transaction.atomic():
             video_file = VideoFile.objects.select_for_update().get(id=video_file_id)
             
-            # Check if video is already being processed
-            if video_file.status in ['processed', 'processing']:
-                self.log(f"Video file {video_file_id} already processed or processing")
-                return {
-                    'success': True,
-                    'message': 'Video already processed or processing',
-                    'status': video_file.status
-                }
-            
             # Update status to converting
             video_file.status = 'converting'
             video_file.save(update_fields=['status'])
@@ -77,6 +69,10 @@ class VideoConversionHandler(BaseTaskHandler):
             )
             
             if success:
+                # Re-fetch video_file to get the latest state (including converted video_file)
+                with transaction.atomic():
+                    video_file = VideoFile.objects.get(id=video_file_id)
+                
                 # Generate thumbnail
                 thumbnail_result = self._generate_thumbnail(video_file)
                 
@@ -135,30 +131,57 @@ class VideoConversionHandler(BaseTaskHandler):
             ContentFile or None: Thumbnail file content
         """
         try:
-            if not video_file.video_file:
+            # Determine which video file to use for thumbnail generation
+            # Priority: converted_file > video_file > original_file
+            video_source = None
+            video_path = None
+            
+            if video_file.converted_file and video_file.conversion_status == 'completed':
+                video_source = "converted"
+                video_path = video_file.converted_file.path
+                self.log(f"Using converted file for thumbnail: {video_path}")
+            elif video_file.video_file:
+                video_source = "original"
+                video_path = video_file.video_file.path
+                self.log(f"Using video file for thumbnail: {video_path}")
+            elif video_file.original_file:
+                video_source = "backup"
+                video_path = video_file.original_file.path
+                self.log(f"Using original file backup for thumbnail: {video_path}")
+            
+            if not video_path:
                 self.log("No video file available for thumbnail generation")
                 return None
             
-            video_path = video_file.video_file.path
             if not os.path.exists(video_path):
                 self.log(f"Video file does not exist: {video_path}")
                 return None
             
             thumbnail_path = generate_thumbnail(video_path)
-            if thumbnail_path and os.path.exists(thumbnail_path):
-                with open(thumbnail_path, 'rb') as f:
+            self.log(f"generate_thumbnail returned: {thumbnail_path}")
+            
+            # Convert relative path to absolute path for existence check
+            full_thumbnail_path = os.path.join(settings.MEDIA_ROOT, thumbnail_path) if thumbnail_path else None
+            self.log(f"Full thumbnail path: {full_thumbnail_path}")
+            
+            if thumbnail_path and os.path.exists(full_thumbnail_path):
+                file_size = os.path.getsize(full_thumbnail_path)
+                self.log(f"Thumbnail file exists, size: {file_size} bytes")
+                
+                with open(full_thumbnail_path, 'rb') as f:
                     thumbnail_content = ContentFile(f.read(), name=f"thumb_{video_file.id}.jpg")
                 
                 # Clean up temporary thumbnail file
                 try:
-                    os.remove(thumbnail_path)
+                    os.remove(full_thumbnail_path)
+                    self.log("Temporary thumbnail file cleaned up")
                 except OSError:
                     pass
                 
                 self.log("Thumbnail generated successfully")
                 return thumbnail_content
             else:
-                self.log("Thumbnail generation returned no result")
+                self.log(f"Thumbnail generation returned no result. thumbnail_path: {thumbnail_path}, file_exists: {os.path.exists(full_thumbnail_path) if full_thumbnail_path else False}")
                 return None
                 
         except Exception as e:

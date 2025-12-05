@@ -93,6 +93,7 @@ class TaskQueue(models.Model):
         self.started_at = timezone.now()
         self.save(update_fields=['status', 'started_at'])
         self.log("Task marked as processing")
+        self.save(update_fields=['execution_log'])
     
     def mark_completed(self, result=None):
         """Mark task as completed and set result."""
@@ -102,6 +103,7 @@ class TaskQueue(models.Model):
             self.result = result
         self.save(update_fields=['status', 'completed_at', 'result'])
         self.log("Task completed successfully")
+        self.save(update_fields=['execution_log'])
     
     def mark_failed(self, error_message=None, retry=False):
         """
@@ -125,6 +127,7 @@ class TaskQueue(models.Model):
             self.error_message = error_message
         
         self.save(update_fields=['status', 'retry_count', 'completed_at', 'error_message'])
+        self.save(update_fields=['execution_log'])
     
     def mark_cancelled(self):
         """Mark task as cancelled."""
@@ -132,6 +135,7 @@ class TaskQueue(models.Model):
         self.completed_at = timezone.now()
         self.save(update_fields=['status', 'completed_at'])
         self.log("Task cancelled")
+        self.save(update_fields=['execution_log'])
     
     def should_retry(self):
         """Check if task should be retried based on retry count and status."""
@@ -159,7 +163,7 @@ class TaskQueue(models.Model):
     
     def log(self, message):
         """Add timestamped message to execution log."""
-        timestamp = timezone.now().strftime('%Y-%m-%d %H:%M:%S')
+        timestamp = timezone.localtime(timezone.now()).strftime('%Y-%m-%d %H:%M:%S')
         log_entry = f"[{timestamp}] {message}"
         
         if self.execution_log:
