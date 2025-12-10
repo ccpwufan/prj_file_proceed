@@ -10,7 +10,7 @@ from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db.models import Q
 from .models import VideoFile, VideoAnalysis, VideoDetectionFrame
 from .forms import VideoUploadForm, VideoAnalysisForm
-from .services import VideoProcessor, generate_thumbnail
+from .services.video_services import VideoProcessor, generate_thumbnail
 from file_processor.queue.manager import queue_manager
 
 
@@ -18,6 +18,12 @@ from file_processor.queue.manager import queue_manager
 def video_home(request):
     """Video module home page - redirect to main home with video option"""
     return redirect('file_processor:home')
+
+
+@login_required
+def test_camera_system(request):
+    """Test camera detection system page"""
+    return render(request, 'file_processor/video/test_camera.html')
 
 
 @login_required
@@ -280,14 +286,25 @@ def video_analysis_history(request):
     # Serialize for JavaScript
     analyses_data = []
     for analysis in analyses:
-        analyses_data.append({
-            'id': analysis.id,
-            'video_file': {
+        # Handle camera analysis (no video_file) vs file analysis
+        video_file_info = {
+            'id': None,  # Camera analysis has no video file
+            'original_filename': 'Camera Snapshot',
+            'file_size': 0,
+            'thumbnail': None,
+        }
+        
+        if analysis.video_file:
+            video_file_info = {
                 'id': analysis.video_file.id,
                 'original_filename': analysis.video_file.original_filename,
                 'file_size': analysis.video_file.file_size,
                 'thumbnail': analysis.video_file.thumbnail.url if analysis.video_file.thumbnail else None,
-            },
+            }
+        
+        analyses_data.append({
+            'id': analysis.id,
+            'video_file': video_file_info,
             'analysis_type': analysis.analysis_type,
             'created_at': analysis.created_at.isoformat(),
             'completed_at': analysis.completed_at.isoformat() if analysis.completed_at else None,

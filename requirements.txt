@@ -7,3 +7,5 @@ python-dotenv>=1.0.0
 # Video processing dependencies
 opencv-python>=4.5.0
 numpy>=1.19.0
+# Barcode detection dependencies
+pyzbar>=0.1.9

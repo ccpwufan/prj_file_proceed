@@ -1,4 +1,5 @@
 {% extends 'file_processor/base.html' %}
+{% load static %}
 
 {% block title %}Camera Detection - File Processor{% endblock %}
 
@@ -7,11 +8,47 @@
     <div class="md:grid md:grid-cols-3 md:gap-6">
         <div class="md:col-span-1">
             <div class="px-4 sm:px-0">
-                <h3 class="text-lg font-medium leading-6 text-gray-900">Camera Detection</h3>
+                <h3 class="text-lg font-medium leading-6 text-gray-900">Multi-Type Detection</h3>
                 <p class="mt-1 text-sm text-gray-600">
-                    Use camera for real-time phone detection. Click start button to activate camera, system will automatically detect phone devices in the frame.
+                    Use camera for real-time detection of barcodes, phones, and yellow boxes. Select detection type and click start button to activate camera.
                 </p>
                 
+                <!-- Detection Type Selection -->
+                <div class="mt-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-3">Detection Type</label>
+                    <div class="space-y-2">
+                        <button @click="setDetectionType('barcode')" 
+                                :class="detectionType === 'barcode' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'"
+                                class="w-full px-4 py-2 rounded-md text-sm font-medium transition-colors">
+                            <svg class="inline-block w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path>
+                            </svg>
+                            Barcode Detect
+                            <span x-show="detectionType === 'barcode'" class="ml-2 text-xs bg-white bg-opacity-20 px-2 py-1 rounded">Active</span>
+                        </button>
+                        
+                        <button @click="setDetectionType('phone')" 
+                                :class="detectionType === 'phone' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'"
+                                class="w-full px-4 py-2 rounded-md text-sm font-medium transition-colors">
+                            <svg class="inline-block w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                            </svg>
+                            Phone Detect
+                            <span x-show="detectionType === 'phone'" class="ml-2 text-xs bg-white bg-opacity-20 px-2 py-1 rounded">Active</span>
+                        </button>
+                        
+                        <button @click="setDetectionType('yellowbox')" 
+                                :class="detectionType === 'yellowbox' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'"
+                                class="w-full px-4 py-2 rounded-md text-sm font-medium transition-colors">
+                            <svg class="inline-block w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                            </svg>
+                            YellowBox Detect
+                            <span x-show="detectionType === 'yellowbox'" class="ml-2 text-xs bg-white bg-opacity-20 px-2 py-1 rounded">Active</span>
+                        </button>
+                    </div>
+                </div>
+
                 <!-- Detection Settings -->
                 <div class="mt-6 space-y-4">
                     <div>
@@ -68,7 +105,7 @@
                         <!-- Detection Overlay -->
                         <div x-show="cameraActive && currentDetections.length > 0" 
                              class="absolute top-4 right-4 bg-red-500 text-white px-3 py-1 rounded-full text-sm font-medium">
-                            <span x-text="`${currentDetections.length} phones detected`"></span>
+                            <span x-text="`${currentDetections.length} ${getDetectionTypeLabel(detectionType)} detected`"></span>
                         </div>
                         
                         <!-- Camera Status -->
@@ -139,21 +176,72 @@
     </div>
 </div>
 
+<!-- Load JavaScript modules -->
+    <script src="{% static 'js/camera_detection.js' %}?v={{ timestamp|default:'20241210' }}"></script>
+    <script src="{% static 'js/detection_visualizer.js' %}?v={{ timestamp|default:'20241210' }}"></script>
+
 <script>
 function cameraDetection() {
     return {
         cameraActive: false,
         cameraStarting: false,
         cameraStatus: '准备就绪',
+        detectionType: 'barcode', // Default to barcode detection
         detectionThreshold: 0.5,
         detectionInterval: 1.0,
         currentDetections: [],
         detectionHistory: [],
         stream: null,
         detectionTimer: null,
+        cameraDetector: null,
+        visualizer: null,
         
-        init() {
-            // Initialize camera detection
+        async init() {
+            try {
+                // Initialize camera detection module
+                this.cameraDetector = new CameraDetection();
+                await this.cameraDetector.init();
+                
+                // Initialize visualizer
+                this.visualizer = new DetectionVisualizer();
+                
+                // Configure visualizer
+                this.visualizer.configure({
+                    showLabels: true,
+                    showConfidence: true,
+                    showData: true,
+                    labelFontSize: 14
+                });
+                
+                console.log('Camera detection system initialized');
+                
+            } catch (error) {
+                console.error('Failed to initialize detection system:', error);
+                this.cameraStatus = 'Initialization failed';
+            }
+        },
+        
+        setDetectionType(type) {
+            this.detectionType = type;
+            this.currentDetections = []; // Clear current detections
+            
+            // Update camera detector
+            if (this.cameraDetector) {
+                this.cameraDetector.setDetectionType(type);
+            }
+            
+            if (this.cameraActive) {
+                this.cameraStatus = `Switched to ${this.getDetectionTypeLabel(type)} detection`;
+            }
+        },
+        
+        getDetectionTypeLabel(type) {
+            const labels = {
+                'barcode': 'barcodes',
+                'phone': 'phones', 
+                'yellowbox': 'yellow boxes'
+            };
+            return labels[type] || 'objects';
         },
         
         async toggleCamera() {
@@ -169,36 +257,30 @@ function cameraDetection() {
             this.cameraStatus = 'Starting camera...';
             
             try {
-                const videoElement = this.$refs.videoElement;
-                this.stream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { 
-                        width: { ideal: 1280 },
-                        height: { ideal: 720 }
-                    } 
-                });
+                if (!this.cameraDetector) {
+                    throw new Error('Camera detector not initialized');
+                }
                 
-                videoElement.srcObject = this.stream;
+                await this.cameraDetector.startCamera();
                 
-                videoElement.onloadedmetadata = () => {
-                    videoElement.play();
-                    this.cameraActive = true;
-                    this.cameraStarting = false;
-                    this.cameraStatus = 'Detecting...';
-                    this.startDetection();
-                };
+                this.cameraActive = true;
+                this.cameraStarting = false;
+                this.cameraStatus = `Detecting ${this.getDetectionTypeLabel(this.detectionType)}...`;
+                
+                // Setup detection loop
+                this.startDetection();
                 
             } catch (error) {
-                console.error('Camera access error:', error);
-                window.Alpine.store('messages').add('Cannot access camera, please check permissions', 'error');
+                console.error('Camera start failed:', error);
+                this.showMessage('Cannot access camera, please check permissions', 'error');
                 this.cameraStarting = false;
                 this.cameraStatus = 'Camera startup failed';
             }
         },
         
         stopCamera() {
-            if (this.stream) {
-                this.stream.getTracks().forEach(track => track.stop());
-                this.stream = null;
+            if (this.cameraDetector) {
+                this.cameraDetector.stopCamera();
             }
             
             if (this.detectionTimer) {
@@ -207,94 +289,120 @@ function cameraDetection() {
             }
             
             this.cameraActive = false;
-            this.cameraStatus = 'Camera stopped';
             this.currentDetections = [];
+            this.cameraStatus = 'Camera stopped';
         },
         
         startDetection() {
-            this.detectionTimer = setInterval(() => {
-                this.performDetection();
+            this.detectionTimer = setInterval(async () => {
+                await this.performDetection();
             }, this.detectionInterval * 1000);
         },
         
-        performDetection() {
+        async performDetection() {
+            if (!this.cameraActive || !this.cameraDetector) {
+                return;
+            }
+            
+            try {
+                // Perform detection using the camera detector
+                await this.cameraDetector.performDetection();
+                
+                // Get current detections from detector
+                this.currentDetections = this.cameraDetector.currentDetections || [];
+                
+                // Update canvas with visualizations
+                this.updateCanvas();
+                
+                // Update status
+                this.cameraStatus = `Detecting ${this.getDetectionTypeLabel(this.detectionType)}... (${this.currentDetections.length} found)`;
+                
+            } catch (error) {
+                console.error('Detection failed:', error);
+                this.cameraStatus = 'Detection failed';
+            }
+        },
+        
+        updateCanvas() {
             const videoElement = this.$refs.videoElement;
             const canvasElement = this.$refs.canvasElement;
+            
+            if (!videoElement || !canvasElement || !this.visualizer) {
+                return;
+            }
+            
             const ctx = canvasElement.getContext('2d');
             
             // Set canvas size to match video
             canvasElement.width = videoElement.videoWidth;
             canvasElement.height = videoElement.videoHeight;
             
-            // Draw video frame to canvas
+            // Draw video frame
             ctx.drawImage(videoElement, 0, 0);
             
-            // Simulate detection (replace with actual detection logic)
-            const mockDetections = this.mockDetection();
-            this.currentDetections = mockDetections;
-            
-            // Draw detection boxes
-            ctx.strokeStyle = '#ef4444';
-            ctx.lineWidth = 2;
-            ctx.font = '14px Arial';
-            ctx.fillStyle = '#ef4444';
-            
-            mockDetections.forEach(detection => {
-                const [x, y, width, height] = detection.bbox;
-                ctx.strokeRect(x, y, width, height);
-                ctx.fillText(`${detection.class} (${(detection.confidence * 100).toFixed(1)}%)`, x, y - 5);
-            });
-            
-            this.cameraStatus = `Detecting... (${mockDetections.length} objects found)`;
+            // Draw detections
+            if (this.currentDetections.length > 0) {
+                this.visualizer.drawDetections(
+                    ctx, 
+                    this.currentDetections, 
+                    this.detectionType,
+                    new Date().toISOString()
+                );
+            }
         },
         
-        mockDetection() {
-            // Simulate random phone detection
-            const detections = [];
-            const numDetections = Math.random() > 0.6 ? Math.floor(Math.random() * 3) + 1 : 0;
-            
-            for (let i = 0; i < numDetections; i++) {
-                if (Math.random() > (1 - this.detectionThreshold)) {
-                    detections.push({
-                        class: 'phone',
-                        confidence: Math.random() * 0.5 + 0.5,
-                        bbox: [
-                            Math.random() * 200 + 50,
-                            Math.random() * 200 + 50,
-                            Math.random() * 100 + 80,
-                            Math.random() * 150 + 100
-                        ]
-                    });
+        async captureSnapshot() {
+            try {
+                if (!this.cameraDetector) {
+                    throw new Error('Camera detector not available');
                 }
+                
+                await this.cameraDetector.captureSnapshot();
+                
+                // Update local history from detector
+                this.detectionHistory = [...this.cameraDetector.detectionHistory];
+                
+                this.showMessage('Screenshot saved', 'success');
+                
+            } catch (error) {
+                console.error('Failed to capture snapshot:', error);
+                this.showMessage('Failed to save screenshot', 'error');
             }
-            
-            return detections;
         },
         
-        captureSnapshot() {
-            const canvasElement = this.$refs.canvasElement;
-            const imageData = canvasElement.toDataURL('image/png');
+        setDetectionThreshold(threshold) {
+            this.detectionThreshold = parseFloat(threshold);
             
-            const snapshot = {
-                image: imageData,
-                count: this.currentDetections.length,
-                time: new Date().toLocaleTimeString(),
-                detections: [...this.currentDetections]
-            };
+            if (this.cameraDetector) {
+                this.cameraDetector.setDetectionThreshold(threshold);
+            }
+        },
+        
+        setDetectionInterval(interval) {
+            this.detectionInterval = parseFloat(interval);
             
-            this.detectionHistory.push(snapshot);
-            
-            // Keep only last 20 snapshots
-            if (this.detectionHistory.length > 20) {
-                this.detectionHistory.shift();
+            if (this.cameraDetector) {
+                this.cameraDetector.setDetectionInterval(interval);
             }
             
-            window.Alpine.store('messages').add('Screenshot saved', 'success');
+            // Restart detection loop if active
+            if (this.cameraActive && this.detectionTimer) {
+                clearInterval(this.detectionTimer);
+                this.startDetection();
+            }
         },
         
         viewDetection(detection) {
-            // Implement viewing detection details
-            console.log('View detection:', detection);
+            console.log('View detection details:', detection);
+            // TODO: Implement detection detail view modal
+        },
+        
+        showMessage(message, type = 'info') {
+            if (window.Alpine && window.Alpine.store('messages')) {
+                window.Alpine.store('messages').add(message, type);
+            } else {
+                console.log(`[${type.toUpperCase()}] ${message}`);
+            }
         }
     }
 }

@@ -46,13 +46,38 @@ class VideoFile(models.Model):
 
 class VideoAnalysis(models.Model):
     """Video analysis model for storing analysis results"""
-    video_file = models.ForeignKey(VideoFile, on_delete=models.CASCADE, related_name='analyses')
+    video_file = models.ForeignKey(VideoFile, on_delete=models.CASCADE, related_name='analyses', null=True, blank=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='video_analyses')
     analysis_type = models.CharField(max_length=20, default='phone_detection', choices=[
         ('phone_detection', 'Phone Detection'),
         ('object_detection', 'Object Detection'),
         ('custom', 'Custom Analysis'),
     ])
+    
+    # Detection type and data for camera detection
+    detection_type = models.CharField(
+        max_length=20,
+        choices=[
+            ('barcode', 'Barcode Recognition'),
+            ('phone', 'Phone Detection'),
+            ('box', 'Yellow Box Detection'),
+            ('multi', 'Multi-Type Detection'),
+        ],
+        default='barcode',
+        help_text='Primary detection type for camera-based analysis'
+    )
+    
+    detection_data = models.JSONField(
+        default=dict,
+        help_text='Aggregated detection results and statistics'
+    )
+    
+    processing_time = models.FloatField(
+        null=True,
+        blank=True,
+        help_text='Total processing time in seconds'
+    )
+    
     created_at = models.DateTimeField(auto_now_add=True)
     completed_at = models.DateTimeField(null=True, blank=True)
     status = models.CharField(max_length=20, default='pending', choices=[
@@ -71,7 +96,10 @@ class VideoAnalysis(models.Model):
         ordering = ['-created_at']
 
     def __str__(self):
-        return f"Analysis of {self.video_file.original_filename} - {self.analysis_type}"
+        if self.video_file:
+            return f"Analysis of {self.video_file.original_filename} - {self.analysis_type}"
+        else:
+            return f"Camera Analysis - {self.analysis_type}"
 
 
 class VideoDetectionFrame(models.Model):
@@ -79,7 +107,27 @@ class VideoDetectionFrame(models.Model):
     video_analysis = models.ForeignKey(VideoAnalysis, on_delete=models.CASCADE, related_name='detection_frames')
     frame_number = models.IntegerField()
     frame_image = models.ImageField(upload_to='detection_frames/')
-    detection_data = models.JSONField(default=dict)  # Store detection results
+    detection_data = models.JSONField(
+        default=dict, 
+        help_text='Structured detection results including bounding boxes, confidence scores, and type-specific data'
+    )
+    detection_type = models.CharField(
+        max_length=20,
+        choices=[
+            ('object', 'Object Detection'),
+            ('barcode', 'Barcode Recognition'),
+            ('phone', 'Phone Detection'),
+            ('box', 'Yellow Box Detection'),
+            ('multi', 'Multi-Type Detection'),
+        ],
+        default='object',
+        help_text='Type of detection performed on this frame'
+    )
+    processing_time = models.FloatField(
+        null=True,
+        blank=True,
+        help_text='Processing time in milliseconds for detection on this frame'
+    )
     timestamp = models.FloatField()  # Frame timestamp in seconds
     created_at = models.DateTimeField(auto_now_add=True)
 

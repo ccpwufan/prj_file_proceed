@@ -17,16 +17,23 @@ from dotenv import load_dotenv
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Load environment variables from .env file
-# 本地开发：只加载.env，忽略.env.docker
-# 如果要在Docker中运行，请手动注释掉下面这行，并启用Docker配置
+# 先加载基础环境变量
 load_dotenv(BASE_DIR / '.env')
-# Docker环境配置（需要时启用）
-# if os.path.exists(BASE_DIR / '.env.docker'):
-#     load_dotenv(BASE_DIR / '.env.docker', override=True)
 
 # 检测是否在Docker环境中
 DOCKER_ENV = os.getenv('DOCKER_ENV', 'False').lower() == 'true'
+
+# Load environment variables from .env file
+if DOCKER_ENV:
+    # Docker环境：优先加载.env.docker
+    if os.path.exists(BASE_DIR / '.env.docker'):
+        load_dotenv(BASE_DIR / '.env.docker', override=True)
+    # 也加载.env作为备选
+    if os.path.exists(BASE_DIR / '.env'):
+        load_dotenv(BASE_DIR / '.env')
+else:
+    # 本地开发：只加载.env
+    load_dotenv(BASE_DIR / '.env')
 
 # 1. 媒体文件存储路径（上传的 PDF + 生成的 PNG 都存在这里）
 # 临时强制使用本地路径，因为图片显示问题
@@ -107,19 +114,33 @@ WSGI_APPLICATION = 'prj_file_proceed.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-# 统一使用BASE_DIR，无论本地还是Docker
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-        'OPTIONS': {
-            'timeout': 30,
-            'init_command': "PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL; PRAGMA cache_size=10000; PRAGMA temp_store=memory;",
-            'check_same_thread': False,  # 允许多线程访问
-        },
-        'CONN_MAX_AGE': 60,  # 连接持久化60秒
+# 根据环境设置数据库路径
+if DOCKER_ENV:
+    # Docker环境中的路径
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': '/app/db.sqlite3',  # 容器内绝对路径
+            'OPTIONS': {
+                'timeout': 30,
+                'check_same_thread': False,  # 允许多线程访问
+            },
+            'CONN_MAX_AGE': 60,  # 连接持久化60秒
+        }
     }
-}
+else:
+    # 本地开发环境路径
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+            'OPTIONS': {
+                'timeout': 30,
+                'check_same_thread': False,  # 允许多线程访问
+            },
+            'CONN_MAX_AGE': 60,  # 连接持久化60秒
+        }
+    }
 
 
 
@@ -158,7 +179,12 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+# Media files
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field

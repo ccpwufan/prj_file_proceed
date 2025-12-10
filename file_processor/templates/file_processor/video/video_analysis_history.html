@@ -250,7 +250,7 @@
 <script>
 function videoAnalysis() {
     return {
-        analyses: {{ analyses|safe }},
+        analyses: {{ analyses|safe }} || [],  // Ensure we always have an array
         filteredAnalyses: [],
         searchQuery: '',
         filterStatus: '',
@@ -261,6 +261,10 @@ function videoAnalysis() {
         pageSize: 10,
         
         init() {
+            // Ensure analyses is an array
+            if (!Array.isArray(this.analyses)) {
+                this.analyses = [];
+            }
             this.filterResults();
             this.calculateStatistics();
         },
@@ -281,15 +285,20 @@ function videoAnalysis() {
         
         statistics: {
             get totalVideos() {
-                return new Set(this.analyses.map(a => a.video_file.id)).size;
+                // Count unique video files (excluding camera analyses)
+                if (!Array.isArray(this.analyses)) return 0;
+                return new Set(this.analyses.filter(a => a.video_file && a.video_file.id).map(a => a.video_file.id)).size;
             },
             get completedAnalyses() {
+                if (!Array.isArray(this.analyses)) return 0;
                 return this.analyses.filter(a => a.status === 'completed').length;
             },
             get processingAnalyses() {
+                if (!Array.isArray(this.analyses)) return 0;
                 return this.analyses.filter(a => a.status === 'processing').length;
             },
             get totalDetections() {
+                if (!Array.isArray(this.analyses)) return 0;
                 return this.analyses.reduce((total, a) => total + (a.total_detections || 0), 0);
             }
         },
@@ -300,13 +309,19 @@ function videoAnalysis() {
         },
         
         filterResults() {
+            // Ensure we have an array to work with
+            if (!Array.isArray(this.analyses)) {
+                this.filteredAnalyses = [];
+                return;
+            }
+            
             let filtered = [...this.analyses];
             
             // Search query
             if (this.searchQuery) {
                 const query = this.searchQuery.toLowerCase();
                 filtered = filtered.filter(analysis => 
-                    analysis.video_file.original_filename.toLowerCase().includes(query)
+                    analysis.video_file && analysis.video_file.original_filename.toLowerCase().includes(query)
                 );
             }
             
