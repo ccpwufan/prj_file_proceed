@@ -160,7 +160,7 @@ class DetectionService:
                              frame_data: bytes, timestamp: float, 
                              detections: List[Dict], processing_time: float) -> VideoDetectionFrame:
         """
-        Save detection frame to database
+        Save or update detection frame to database
         
         Args:
             analysis: VideoAnalysis instance
@@ -174,31 +174,48 @@ class DetectionService:
             VideoDetectionFrame instance
         """
         from django.core.files.base import ContentFile
+        from django.utils import timezone
         import os
         
-        # Generate filename for frame image
-        frame_filename = f"frame_{analysis.id}_{frame_number:06d}.jpg"
-        
-        # Create detection frame record
-        detection_frame = VideoDetectionFrame.objects.create(
-            video_analysis=analysis,
-            frame_number=frame_number,
-            timestamp=timestamp,
-            processing_time=processing_time,
-            detection_data={
+        # Try to get existing frame record first
+        try:
+            detection_frame = VideoDetectionFrame.objects.get(
+                video_analysis=analysis,
+                frame_number=frame_number
+            )
+            # Update existing record
+            detection_frame.timestamp = timestamp
+            detection_frame.processing_time = processing_time
+            # 使用与CameraService.re_detect相同的结构
+            detection_frame.detection_data = {
                 'detections': detections,
-                'summary': {
-                    'total_detections': len(detections),
-                    'detection_types': list(set(d.get('type', 'unknown') for d in detections))
-                }
+                'detection_type': analysis.detection_type or 'barcode',
+                'threshold': analysis.detection_threshold or 0.5,
+                'time': timestamp,
+                're_detected': True if getattr(analysis, '_is_re_detect', False) else False,
+                're_detection_timestamp': timezone.now().isoformat() if getattr(analysis, '_is_re_detect', False) else None
             }
-        )
-        
-        # Save frame image
-        detection_frame.frame_image.save(frame_filename, ContentFile(frame_data))
-        detection_frame.save()
-        
-        logger.info(f"Saved detection frame {frame_number} with {len(detections)} detections")
+            detection_frame.save()
+            logger.info(f"Updated existing detection frame {frame_number}")
+        except VideoDetectionFrame.DoesNotExist:
+            # Create new record if it doesn't exist
+            frame_filename = f"frame_{analysis.id}_{frame_number:06d}.jpg"
+            detection_frame = VideoDetectionFrame.objects.create(
+                video_analysis=analysis,
+                frame_number=frame_number,
+                timestamp=timestamp,
+                processing_time=processing_time,
+                detection_data={
+                    'detections': detections,
+                    'detection_type': analysis.detection_type or 'barcode',
+                    'threshold': analysis.detection_threshold or 0.5,
+                    'time': timestamp
+                }
+            )
+            # Save frame image only for new records
+            detection_frame.frame_image.save(frame_filename, ContentFile(frame_data))
+            detection_frame.save()
+            logger.info(f"Created new detection frame {frame_number}")
         
         return detection_frame
     

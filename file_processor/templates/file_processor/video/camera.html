@@ -177,7 +177,7 @@
 </div>
 
 <!-- Load JavaScript modules -->
-    <script src="{% static 'js/camera_detection.js' %}?v={{ timestamp|default:'20241210' }}"></script>
+    <script src="{% static 'js/camera_detection.js' %}?v={{ timestamp|default:'20241216' }}"></script>
     <script src="{% static 'js/detection_visualizer.js' %}?v={{ timestamp|default:'20241210' }}"></script>
 
 <script>
@@ -356,9 +356,10 @@ function cameraDetection() {
                 if (!this.cameraDetector) {
                     throw new Error('Camera detector not available');
                 }
+                console.log('camerial.html call captureSnapshot');
                 
                 await this.cameraDetector.captureSnapshot();
-                
+                console.log('camerial.html call complete');
                 // Update local history from detector
                 this.detectionHistory = [...this.cameraDetector.detectionHistory];
                 

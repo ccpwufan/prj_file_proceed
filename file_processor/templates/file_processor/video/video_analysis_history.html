@@ -62,70 +62,33 @@
         </div>
     </div>
 
-    <!-- Statistics Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-        <div class="bg-white shadow rounded-lg p-6">
-            <div class="flex items-center">
-                <div class="flex-shrink-0 bg-blue-100 rounded-full p-3">
-                    <svg class="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
-                    </svg>
-                </div>
-                <div class="ml-4">
-                    <div class="text-2xl font-bold text-gray-900" x-text="statistics.totalVideos"></div>
-                    <div class="text-sm text-gray-500">Total Videos</div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="bg-white shadow rounded-lg p-6">
-            <div class="flex items-center">
-                <div class="flex-shrink-0 bg-green-100 rounded-full p-3">
-                    <svg class="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                    </svg>
-                </div>
-                <div class="ml-4">
-                    <div class="text-2xl font-bold text-gray-900" x-text="statistics.completedAnalyses"></div>
-                    <div class="text-sm text-gray-500">Completed Analyses</div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="bg-white shadow rounded-lg p-6">
-            <div class="flex items-center">
-                <div class="flex-shrink-0 bg-yellow-100 rounded-full p-3">
-                    <svg class="h-6 w-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                    </svg>
-                </div>
-                <div class="ml-4">
-                    <div class="text-2xl font-bold text-gray-900" x-text="statistics.processingAnalyses"></div>
-                    <div class="text-sm text-gray-500">Processing</div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="bg-white shadow rounded-lg p-6">
-            <div class="flex items-center">
-                <div class="flex-shrink-0 bg-red-100 rounded-full p-3">
-                    <svg class="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"></path>
-                    </svg>
-                </div>
-                <div class="ml-4">
-                    <div class="text-2xl font-bold text-gray-900" x-text="statistics.totalDetections"></div>
-                    <div class="text-sm text-gray-500">Total Detections</div>
-                </div>
-            </div>
-        </div>
-    </div>
+
 
     <!-- Results Table -->
     <div class="bg-white shadow rounded-lg">
         <div class="px-4 py-5 sm:p-6">
             <div class="flex items-center justify-between mb-4">
-                <h4 class="text-md font-medium text-gray-900">Analysis Records</h4>
+                <div class="flex items-center space-x-4">
+                    <h4 class="text-md font-medium text-gray-900">Analysis Records</h4>
+                    <div x-show="selectedAnalyses.length > 0" class="flex items-center space-x-2">
+                        <span class="text-sm text-gray-600">
+                            <span x-text="selectedAnalyses.length"></span> items selected
+                        </span>
+                        <button @click="confirmBatchDelete"
+                                :disabled="isDeleting"
+                                class="inline-flex items-center px-3 py-1 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50">
+                            <svg x-show="!isDeleting" class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                            </svg>
+                            <svg x-show="isDeleting" class="animate-spin h-4 w-4 mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <span x-show="!isDeleting">Delete Selected</span>
+                            <span x-show="isDeleting">Deleting... <span x-text="deleteProgress.current"></span>/<span x-text="deleteProgress.total"></span></span>
+                        </button>
+                    </div>
+                </div>
                 <div class="text-sm text-gray-500">
                     Showing <span x-text="filteredAnalyses.length"></span> / <span x-text="totalAnalyses"></span> records
                 </div>
@@ -136,6 +99,15 @@
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
                         <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <input type="checkbox" 
+                                       x-model="selectAll" 
+                                       @change="toggleSelectAll"
+                                       class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                ID
+                            </th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                                 @click="sortBy('video_file')">
                                 Video File
@@ -145,6 +117,19 @@
                                 @click="sortBy('analysis_type')">
                                 Analysis Type
                                 <span x-show="sortField === 'analysis_type'" x-text="sortOrder === 'asc' ? '↑' : '↓'"></span>
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                                @click="sortBy('detection_type')">
+                                Detection Type
+                                <span x-show="sortField === 'detection_type'" x-text="sortOrder === 'asc' ? '↑' : '↓'"></span>
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Result Summary
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                                @click="sortBy('user')">
+                                User
+                                <span x-show="sortField === 'user'" x-text="sortOrder === 'asc' ? '↑' : '↓'"></span>
                             </th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                                 @click="sortBy('created_at')">
@@ -166,12 +151,19 @@
                         <template x-for="analysis in paginatedAnalyses" :key="analysis.id">
                             <tr class="hover:bg-gray-50">
                                 <td class="px-6 py-4 whitespace-nowrap">
+                                    <input type="checkbox" 
+                                           :value="analysis.id"
+                                           x-model="selectedAnalyses"
+                                           class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900" x-text="analysis.id"></td>
+                                <td class="px-6 py-4 whitespace-nowrap">
                                     <div class="flex items-center">
                                         <div class="flex-shrink-0 h-10 w-10">
-                                            <img x-show="analysis.video_file.thumbnail" 
+                                            <img x-show="analysis.video_file && analysis.video_file.thumbnail" 
                                                  :src="analysis.video_file.thumbnail" 
                                                  class="h-10 w-10 rounded-full object-cover">
-                                            <div x-show="!analysis.video_file.thumbnail" 
+                                            <div x-show="!analysis.video_file || !analysis.video_file.thumbnail" 
                                                  class="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center">
                                                 <svg class="h-6 w-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
@@ -179,8 +171,10 @@
                                             </div>
                                         </div>
                                         <div class="ml-4">
-                                            <div class="text-sm font-medium text-gray-900" x-text="analysis.video_file.original_filename"></div>
-                                            <div class="text-sm text-gray-500" x-text="formatFileSize(analysis.video_file.file_size)"></div>
+                                            <div class="text-sm font-medium text-gray-900" 
+                                                 x-text="analysis.video_file ? analysis.video_file.original_filename : 'Camera Snapshot'"></div>
+                                            <div class="text-sm text-gray-500" 
+                                                 x-text="analysis.video_file ? formatFileSize(analysis.video_file.file_size) : 'No file'"></div>
                                         </div>
                                     </div>
                                 </td>
@@ -188,6 +182,22 @@
                                     <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800"
                                           x-text="getAnalysisTypeText(analysis.analysis_type)"></span>
                                 </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800"
+                                          x-text="getDetectionTypeText(analysis.detection_type)"></span>
+                                </td>
+                                <td class="px-6 py-4 text-sm text-gray-500 max-w-xs">
+                                    <div x-show="analysis.result_summary && typeof analysis.result_summary === 'object'">
+                                        <div x-show="analysis.result_summary.title" class="font-medium text-gray-900" x-text="analysis.result_summary.title"></div>
+                                        <div x-show="getDetectionTypesText(analysis.result_summary)" class="text-xs text-gray-500">
+                                            Types: <span x-text="getDetectionTypesText(analysis.result_summary)"></span>
+                                        </div>
+                                        <div x-show="analysis.result_summary.camera_session" class="text-xs text-blue-600">Camera Session</div>
+                                        <div x-show="analysis.result_summary.raw" class="text-xs text-gray-400" x-text="analysis.result_summary.raw"></div>
+                                    </div>
+                                    <div x-show="!analysis.result_summary || typeof analysis.result_summary !== 'object'" class="text-gray-400">No summary</div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900" x-text="analysis.user.username"></td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" x-text="formatDate(analysis.created_at)"></td>
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full"
@@ -206,12 +216,8 @@
                                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                     <button @click="viewResults(analysis.id)" 
                                             :disabled="analysis.status !== 'completed'"
-                                            class="text-blue-600 hover:text-blue-900 disabled:text-gray-400 disabled:cursor-not-allowed mr-3">
+                                            class="text-blue-600 hover:text-blue-900 disabled:text-gray-400 disabled:cursor-not-allowed">
                                         View Results
-                                    </button>
-                                    <button @click="deleteAnalysis(analysis.id)" 
-                                            class="text-red-600 hover:text-red-900">
-                                        Delete
                                     </button>
                                 </td>
                             </tr>
@@ -245,6 +251,9 @@
             </div>
         </div>
     </div>
+    
+    <!-- Modal Container -->
+    <div id="modal-container"></div>
 </div>
 
 <script>
@@ -260,6 +269,17 @@ function videoAnalysis() {
         currentPage: 1,
         pageSize: 10,
         
+        // Selection and deletion properties
+        selectedAnalyses: [],
+        selectAll: false,
+        isDeleting: false,
+        deleteProgress: {
+            current: 0,
+            total: 0,
+            successful: [],
+            failed: []
+        },
+        
         init() {
             // Ensure analyses is an array
             if (!Array.isArray(this.analyses)) {
@@ -267,6 +287,16 @@ function videoAnalysis() {
             }
             this.filterResults();
             this.calculateStatistics();
+            
+            // Watch for changes in selection
+            this.$watch('selectedAnalyses', () => {
+                this.updateSelectAllState();
+            });
+            
+            // Watch for page changes to update select all state
+            this.$watch('currentPage', () => {
+                this.updateSelectAllState();
+            });
         },
         
         get totalAnalyses() {
@@ -317,12 +347,15 @@ function videoAnalysis() {
             
             let filtered = [...this.analyses];
             
-            // Search query
+            // Search query - handle camera snapshots
             if (this.searchQuery) {
                 const query = this.searchQuery.toLowerCase();
-                filtered = filtered.filter(analysis => 
-                    analysis.video_file && analysis.video_file.original_filename.toLowerCase().includes(query)
-                );
+                filtered = filtered.filter(analysis => {
+                    const filename = analysis.video_file ? 
+                        analysis.video_file.original_filename.toLowerCase() : 
+                        'camera snapshot';
+                    return filename.includes(query);
+                });
             }
             
             // Status filter
@@ -335,18 +368,26 @@ function videoAnalysis() {
                 filtered = filtered.filter(analysis => analysis.analysis_type === this.filterAnalysisType);
             }
             
-            // Sort
+            // Sort - handle camera snapshots
             filtered.sort((a, b) => {
                 let aVal, bVal;
                 
                 switch (this.sortField) {
                     case 'video_file':
-                        aVal = a.video_file.original_filename;
-                        bVal = b.video_file.original_filename;
+                        aVal = a.video_file ? a.video_file.original_filename : 'Camera Snapshot';
+                        bVal = b.video_file ? b.video_file.original_filename : 'Camera Snapshot';
                         break;
                     case 'analysis_type':
                         aVal = a.analysis_type;
                         bVal = b.analysis_type;
+                        break;
+                    case 'detection_type':
+                        aVal = a.detection_type;
+                        bVal = b.detection_type;
+                        break;
+                    case 'user':
+                        aVal = a.user ? a.user.username : '';
+                        bVal = b.user ? b.user.username : '';
                         break;
                     case 'created_at':
                         aVal = new Date(a.created_at);
@@ -390,33 +431,148 @@ function videoAnalysis() {
         },
         
         viewResults(analysisId) {
-            window.location.href = `/video/analyze_camera/${analysisId}/`;
-        },
-        
-        deleteAnalysis(analysisId) {
-            if (confirm('Are you sure you want to delete this analysis record?')) {
-                // Implement delete functionality
-                fetch(`/video/delete-analysis/${analysisId}/`, {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRFToken': window.Alpine.store('utils').getCsrfToken(),
-                        'Content-Type': 'application/json',
-                    },
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        window.Alpine.store('messages').add('Analysis record deleted', 'success');
-                        this.refreshData();
-                    } else {
-                        window.Alpine.store('messages').add('Delete failed: ' + data.message, 'error');
-                    }
+            // Load modal content via AJAX
+            fetch(`/video/analysis-details/${analysisId}/`)
+                .then(response => response.text())
+                .then(html => {
+                    document.getElementById('modal-container').innerHTML = html;
+                    // Show the modal after a short delay to ensure DOM is ready
+                    setTimeout(() => {
+                        // Initialize event listeners for re-detect buttons
+                        this.initializeReDetectButtons();
+                        
+                        if (window.showModal) {
+                            showModal();
+                        } else {
+                            // Fallback if showModal function is not available
+                            const modal = document.getElementById('detection-results-modal');
+                            if (modal) {
+                                modal.style.display = 'block';
+                            }
+                        }
+                    }, 100);
                 })
                 .catch(error => {
-                    console.error('Delete error:', error);
-                    window.Alpine.store('messages').add('Delete failed', 'error');
+                    console.error('Error loading analysis details:', error);
+                    // Fallback to original behavior
+                    window.location.href = `/video/analyze_camera/${analysisId}/`;
                 });
+        },
+
+        initializeReDetectButtons() {
+            // Add event listeners to all re-detect buttons
+            document.querySelectorAll('.re-detect-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    const frameId = this.getAttribute('data-frame-id');
+                    const selectElement = document.getElementById(`detect-type-${frameId}`);
+                    const detectionType = selectElement.value;
+                    // Call the reDetectFrame function from the modal script
+                    if (typeof window.reDetectFrame === 'function') {
+                        window.reDetectFrame(frameId, detectionType);
+                    } else {
+                        console.error('reDetectFrame function not found');
+                    }
+                });
+            });
+        },
+        
+        // Selection management methods
+        toggleSelectAll() {
+            if (this.selectAll) {
+                // Select all current page items
+                this.selectedAnalyses = this.paginatedAnalyses.map(analysis => analysis.id);
+            } else {
+                // Clear selection
+                this.selectedAnalyses = [];
             }
+        },
+        
+        // Watch for changes in paginatedAnalyses to update selectAll
+        updateSelectAllState() {
+            const currentPageIds = this.paginatedAnalyses.map(analysis => analysis.id);
+            const allCurrentPageSelected = currentPageIds.every(id => this.selectedAnalyses.includes(id));
+            this.selectAll = allCurrentPageSelected && currentPageIds.length > 0;
+        },
+        
+        // Batch deletion methods
+        confirmBatchDelete() {
+            if (this.selectedAnalyses.length === 0) return;
+            
+            const count = this.selectedAnalyses.length;
+            if (confirm(`Are you sure you want to delete ${count} analysis record${count > 1 ? 's' : ''}? This action cannot be undone.`)) {
+                this.executeBatchDelete();
+            }
+        },
+        
+        async executeBatchDelete() {
+            this.isDeleting = true;
+            this.deleteProgress = {
+                current: 0,
+                total: this.selectedAnalyses.length,
+                successful: [],
+                failed: []
+            };
+            
+            const idsToDelete = [...this.selectedAnalyses];
+            
+            for (const analysisId of idsToDelete) {
+                // Convert to number for comparison
+                const numericId = parseInt(analysisId);
+                try {
+                    const response = await fetch(`/video/delete-analysis/${analysisId}/`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': window.Alpine.store('utils').getCsrfToken(),
+                            'Content-Type': 'application/json',
+                        },
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        this.deleteProgress.successful.push(analysisId);
+                        // Remove from selected analyses and from the analyses array
+                        this.selectedAnalyses = this.selectedAnalyses.filter(id => id !== analysisId);
+                        // Convert ID to number for comparison
+                        const numericId = parseInt(analysisId);
+                        this.analyses = this.analyses.filter(analysis => analysis.id !== numericId);
+                    } else {
+                        this.deleteProgress.failed.push({ id: analysisId, error: data.message });
+                    }
+                } catch (error) {
+                    console.error('Delete error:', error);
+                    this.deleteProgress.failed.push({ id: analysisId, error: 'Network error' });
+                }
+                
+                this.deleteProgress.current++;
+            }
+            
+            this.isDeleting = false;
+            this.showDeleteResults();
+        },
+        
+        showDeleteResults() {
+            const successful = this.deleteProgress.successful.length;
+            const failed = this.deleteProgress.failed.length;
+            
+            if (failed === 0) {
+                window.Alpine.store('messages').add(`${successful} record${successful > 1 ? 's' : ''} deleted successfully`, 'success');
+            } else if (successful === 0) {
+                window.Alpine.store('messages').add(`Failed to delete ${failed} record${failed > 1 ? 's' : ''}`, 'error');
+            } else {
+                window.Alpine.store('messages').add(`${successful} record${successful > 1 ? 's' : ''} deleted, ${failed} failed`, 'warning');
+            }
+            
+            // Clear selection
+            this.selectedAnalyses = [];
+            this.selectAll = false;
+            
+            // Force DOM update with nextTick
+            this.$nextTick(() => {
+                // Update filtered analyses and statistics
+                this.filterResults();
+                this.calculateStatistics();
+            });
         },
         
         refreshData() {
@@ -467,8 +623,146 @@ function videoAnalysis() {
                 'custom': 'Custom Analysis'
             };
             return texts[type] || type;
+        },
+        
+        getDetectionTypeText(type) {
+            const texts = {
+                'barcode': 'Barcode',
+                'phone': 'Phone',
+                'yellowbox': 'Yellow Box',
+                'unknown': 'Unknown'
+            };
+            return texts[type] || type;
+        },
+        
+        getDetectionTypesText(resultSummary) {
+            if (!resultSummary || !resultSummary.detection_types || !Array.isArray(resultSummary.detection_types)) {
+                return '';
+            }
+            return resultSummary.detection_types.join(', ');
         }
     }
 }
+
+// Global functions for modal control
+function closeModal() {
+    const modal = document.getElementById('detection-results-modal');
+    if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = 'auto'; // Restore background scrolling
+    }
+}
+
+function showModal() {
+    const modal = document.getElementById('detection-results-modal');
+    if (modal) {
+        modal.style.display = 'block';
+        document.body.style.overflow = 'hidden'; // Prevent background scrolling
+    }
+}
+
+// Re-detect frame function
+function reDetectFrame(frameId, detectionType) {
+    // Get button for UI feedback
+    const button = document.getElementById(`re-detect-btn-${frameId}`);
+    if (!button) {
+        console.error(`Button not found for frame ID: ${frameId}`);
+        return;
+    }
+    
+    // Get threshold value (only if threshold input exists)
+    let threshold = 0.3;
+    const thresholdInput = document.getElementById(`threshold-${frameId}`);
+    if (thresholdInput) {
+        threshold = parseFloat(thresholdInput.value) || 0.3;
+    }
+    
+    const originalText = button.textContent;
+    button.textContent = 'Processing...';
+    button.disabled = true;
+    
+    // Send re-detection request
+    fetch('/video/re-detect/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            frame_id: frameId,
+            detection_type: detectionType,
+            threshold: threshold
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Show success message
+            alert(`Re-detection completed! Found ${data.detection_count} objects.`);
+            
+            // Update the detection results section instead of reloading the page
+            updateDetectionResults(frameId, data);
+        } else {
+            alert(`Re-detection failed: ${data.error}`);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Re-detection failed due to network error');
+    })
+    .finally(() => {
+        // Restore button state
+        if (button) {
+            button.textContent = originalText;
+            button.disabled = false;
+        }
+    });
+}
+
+// Update detection results section after re-detection
+function updateDetectionResults(frameId, data) {
+    // Find the detection results section for this frame
+    const detectionResultsSection = document.querySelector(`#detection-results-${frameId}`);
+    
+    if (detectionResultsSection) {
+        // Clear current content
+        detectionResultsSection.innerHTML = '';
+        
+        // Add new content based on detection results
+        if (data.detections && data.detections.length > 0) {
+            // Create container for detections
+            const detectionsContainer = document.createElement('div');
+            detectionsContainer.className = 'space-y-2';
+            
+            data.detections.forEach((detection, index) => {
+                const detectionDiv = document.createElement('div');
+                detectionDiv.className = 'bg-blue-50 p-2 rounded';
+                detectionDiv.innerHTML = `
+                    <div class="text-xs font-medium text-blue-800">
+                        Detection ${index + 1}
+                    </div>
+                    <div class="text-xs mt-1 p-2 bg-white rounded">
+                        <div>Class: ${detection.class}</div>
+                        <div>Confidence: ${parseFloat(detection.confidence).toFixed(3)}</div>
+                        <div>BBox: [${detection.bbox.join(', ')}]</div>
+                        ${detection.data ? Object.keys(detection.data).map(key => 
+                            `<div>${key.charAt(0).toUpperCase() + key.slice(1)}: ${detection.data[key]}</div>`
+                        ).join('') : ''}
+                    </div>
+                `;
+                detectionsContainer.appendChild(detectionDiv);
+            });
+            
+            detectionResultsSection.appendChild(detectionsContainer);
+        } else {
+            // No detections found
+            detectionResultsSection.innerHTML = '<div class="text-gray-500 text-sm">No objects detected</div>';
+        }
+    }
+}
+
+// Make functions globally available
+window.closeModal = closeModal;
+window.showModal = showModal;
+window.reDetectFrame = reDetectFrame;
 </script>
 {% endblock %}

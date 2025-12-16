@@ -199,8 +199,9 @@ class CameraDetection {
      * Start detection loop
      */
     startDetection() {
-        this.detectionTimer = setInterval(() => {
-            this.performDetection();
+        this.detectionTimer = setInterval(async () => {
+            // Use default options for regular detection
+            await this.performDetection();
         }, this.detectionInterval * 1000);
         
         console.log(`Detection started with ${this.detectionInterval}s interval`);
@@ -208,11 +209,25 @@ class CameraDetection {
 
     /**
      * Perform detection on current frame
+     * @param {Object} options - Configuration options for detection
+     * @param {boolean} options.updateCanvas - Whether to update canvas with detection results (default: true)
+     * @param {boolean} options.updateStatus - Whether to update status message (default: true)
+     * @param {string} options.imageFormat - Image format for frame data (default: 'image/jpeg')
+     * @param {number} options.imageQuality - Image quality for frame data (default: 0.8)
+     * @returns {Object} - Object containing frame data and detection results
      */
-    async performDetection() {
+    async performDetection(options = {}) {
         if (!this.cameraActive || !this.videoElement || !this.canvasElement) {
-            return;
+            return null;
         }
+        
+        // Set default options
+        const {
+            updateCanvas = true,
+            updateStatus = true,
+            imageFormat = 'image/jpeg',
+            imageQuality = 0.8
+        } = options;
         
         try {
             // Draw current video frame to canvas
@@ -220,23 +235,40 @@ class CameraDetection {
             ctx.drawImage(this.videoElement, 0, 0);
             
             // Get frame as base64 for API
-            const frameData = this.canvasElement.toDataURL('image/jpeg', 0.8);
+            const frameData = this.canvasElement.toDataURL(imageFormat, imageQuality);
             
             // Call detection API
             const detections = await this.callDetectionAPI(frameData);
             
+            // Update current detections
             this.currentDetections = detections;
             
-            // Draw detection results
-            this.drawDetections(ctx, detections);
+            // Draw detection results if requested
+            if (updateCanvas) {
+                this.drawDetections(ctx, detections);
+            }
             
-            // Update status
-            const detectionLabel = this.getDetectionTypeLabel(this.detectionType);
-            this.updateStatus(`Detecting ${detectionLabel}... (${detections.length} found)`);
+            // Update status if requested
+            if (updateStatus) {
+                const detectionLabel = this.getDetectionTypeLabel(this.detectionType);
+                this.updateStatus(`Detecting ${detectionLabel}... (${detections.length} found)`);
+            }
+            
+            // Return frame data and detections
+            return {
+                frameData,
+                detections,
+                detectionType: this.detectionType,
+                threshold: this.detectionThreshold,
+                timestamp: new Date().toLocaleString()
+            };
             
         } catch (error) {
             console.error('Detection failed:', error);
-            this.updateStatus('Detection failed');
+            if (updateStatus) {
+                this.updateStatus('Detection failed');
+            }
+            return null;
         }
     }
 
@@ -321,60 +353,91 @@ class CameraDetection {
         }
         
         try {
-            const frameData = this.canvasElement.toDataURL('image/png');
+            // Update status
+            this.updateStatus('Capturing snapshot...');
+            console.log('async captureSnapshot() in js');
+            // Perform detection with specific options for snapshot
+            const result = await this.performDetection({
+                updateCanvas: false, // Don't update canvas with detection boxes yet
+                updateStatus: false, // We'll handle status updates manually
+                imageFormat: 'image/png', // Use PNG for better quality
+                imageQuality: 1.0 // Highest quality for snapshot
+            });
             
-            const snapshot = {
-                image: frameData,
-                count: this.currentDetections.length,
-                time: new Date().toLocaleTimeString(),
-                detections: [...this.currentDetections],
-                detection_type: this.detectionType
+            if (!result) {
+                throw new Error('Failed to perform detection for snapshot');
+            }
+            
+            const { frameData, detections, detectionType, threshold, timestamp } = result;
+            
+            
+            // Draw detection results to canvas for the annotated image
+            const ctx = this.canvasElement.getContext('2d');
+            this.drawDetections(ctx, detections);
+            
+            // Get the annotated frame (with detection boxes)
+            const annotatedFrameData = this.canvasElement.toDataURL('image/png');
+            
+            // Create detection_data object
+            const detection_data = {
+                image: frameData, // Original image without annotations
+                detections: [...detections], // Copy of detections array
+                detection_type: detectionType,
+                threshold: threshold,
+                time: timestamp
             };
             
-            // Save snapshot to API
-            await this.saveSnapshot(snapshot);
+            // Save snapshot to API with CSRF token
+            try {
+                const response = await fetch(`/video/capture-snapshot/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': this.getCsrfToken(),
+                    },
+                    body: JSON.stringify(detection_data)
+                });
+                
+                const data = await response.json();
+                
+                if (!data.success) {
+                    throw new Error(data.message || 'Failed to save snapshot');
+                }
+                
+            } catch (apiError) {
+                console.error('Failed to save snapshot to server:', apiError);
+                throw apiError;
+            }
             
             // Add to local history
-            this.detectionHistory.push(snapshot);
+            this.detectionHistory.push(detection_data);
             
             // Keep only last 20 snapshots
             if (this.detectionHistory.length > 20) {
                 this.detectionHistory.shift();
             }
             
+            // Update status
+            this.updateStatus(`Snapshot saved (${detections.length} detections)`);
             this.showMessage('Screenshot saved', 'success');
             
         } catch (error) {
             console.error('Failed to capture snapshot:', error);
+            this.updateStatus('Failed to save screenshot');
             this.showMessage('Failed to save screenshot', 'error');
         }
     }
 
     /**
-     * Save snapshot to server
+     * Get CSRF token from cookies
      */
-    async saveSnapshot(snapshot) {
-        try {
-            const response = await fetch(`${this.apiBaseUrl}capture-snapshot/`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(snapshot)
-            });
-            
-            const data = await response.json();
-            
-            if (!data.success) {
-                throw new Error(data.error);
-            }
-            
-            return data;
-            
-        } catch (error) {
-            console.error('Failed to save snapshot to server:', error);
-            throw error;
+    getCsrfToken() {
+        const cookies = document.cookie.split(';');
+        for (let cookie of cookies) {
+            const [name, value] = cookie.trim().split('=');
+            if (name === 'csrftoken') return decodeURIComponent(value);
         }
+        return '';
     }
 
     /**

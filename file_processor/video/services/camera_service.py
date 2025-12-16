@@ -31,7 +31,7 @@ class CameraService:
             logger.error(f"Failed to initialize detection service: {e}")
     
     def create_camera_analysis(self, user, title: str = None, 
-                              detection_types: List[str] = None) -> VideoAnalysis:
+                              detection_types: List[str] = None, status: str = 'processing') -> VideoAnalysis:
         """
         Create a new camera-based analysis session
         
@@ -39,6 +39,7 @@ class CameraService:
             user: User instance
             title: Optional title for the analysis
             detection_types: List of detection types to enable
+            status: Initial status for the analysis ('processing' or 'completed')
         
         Returns:
             VideoAnalysis instance
@@ -50,24 +51,27 @@ class CameraService:
             video_file=None,  # Camera analysis doesn't have a video file
             user=user,
             analysis_type='object_detection',  # Use existing analysis type
-            status='processing',
+            status=status,  # Use provided status parameter
             detection_threshold=0.5,
             frame_interval=1.0,  # 1 frame per second for camera
             total_frames_processed=0,
             total_detections=0
         )
         
-        # Store title in result_summary if provided
-        if title:
-            analysis.result_summary = f"Title: {title}"
-            analysis.save()
-        
-        # Store detection types in result_summary for frontend access
-        analysis.result_summary = {
+        # Prepare result_summary data with all information
+        result_summary_data = {
             'detection_types': detection_types,
             'camera_session': True,
             'session_start': timezone.now().isoformat()
         }
+        
+        # Add title if provided
+        if title:
+            result_summary_data['title'] = title
+        
+        # Set result_summary and detection_type
+        analysis.result_summary = result_summary_data
+        analysis.detection_type = detection_types[0] if detection_types else 'barcode'
         analysis.save()
         
         logger.info(f"Created camera analysis {analysis.id} for user {user.username}")
@@ -232,67 +236,16 @@ class CameraService:
             logger.error(f"Error ending camera session {analysis_id}: {e}")
             return {'error': str(e)}
     
-    def capture_snapshot(self, analysis_id: int, frame_data: str) -> Dict[str, Any]:
-        """
-        Capture and save a snapshot from camera
-        
-        Args:
-            analysis_id: VideoAnalysis ID
-            frame_data: Base64 encoded frame data
-        
-        Returns:
-            Dict with snapshot information
-        """
-        try:
-            analysis = VideoAnalysis.objects.get(id=analysis_id)
-            
-            # Decode base64 frame data
-            if frame_data.startswith('data:image/'):
-                frame_data = frame_data.split(',')[1]
-            
-            frame_bytes = base64.b64decode(frame_data)
-            
-            # Create a detection frame for the snapshot
-            frame_number = analysis.total_frames_processed + 1
-            timestamp = time.time()
-            
-            # Prepare the snapshot image
-            filename = f"snapshot_{analysis_id}_{int(timestamp)}.jpg"
-            image_file = ContentFile(frame_bytes, filename)
-            
-            # Create a detection frame record for the snapshot with image
-            detection_frame = VideoDetectionFrame.objects.create(
-                video_analysis=analysis,
-                frame_number=frame_number,
-                timestamp=timestamp,
-                detection_type='snapshot',
-                detection_data={'snapshot': True, 'manual_capture': True},
-                frame_image=image_file
-            )
-            
-            return {
-                'snapshot_id': detection_frame.id,
-                'frame_number': frame_number,
-                'timestamp': timestamp,
-                'image_url': str(detection_frame.frame_image.url) if detection_frame.frame_image else None
-            }
-            
-        except VideoAnalysis.DoesNotExist:
-            return {'error': f'Analysis {analysis_id} not found'}
-        except Exception as e:
-            logger.error(f"Error capturing snapshot for analysis {analysis_id}: {e}")
-            return {'error': str(e)}
     
     def save_detection_snapshot(self, analysis_id: int, image_data: bytes, 
-                               detections: List[Dict], metadata: Dict = None) -> Dict[str, Any]:
+                               detection_data: Dict) -> Dict[str, Any]:
         """
         Save a camera snapshot with detection results
         
         Args:
             analysis_id: VideoAnalysis ID
             image_data: Raw image data (bytes)
-            detections: List of detection results
-            metadata: Optional metadata dictionary
+            detection_data: Detection data dictionary (without image)
         
         Returns:
             Dict with snapshot information
@@ -304,14 +257,14 @@ class CameraService:
             frame_number = analysis.total_frames_processed + 1
             timestamp = time.time()
             
-            # Prepare detection data
-            detection_data = {
-                'detections': detections,
-                'snapshot': True,
-                'manual_capture': True,
-                'metadata': metadata or {},
-                'detection_type': metadata.get('detection_type', 'unknown') if metadata else 'unknown'
-            }
+            # The detection_data is already prepared from frontend
+            # Just ensure required fields exist
+            if 'detection_type' not in detection_data:
+                detection_data['detection_type'] = 'unknown'
+            if 'threshold' not in detection_data:
+                detection_data['threshold'] = 0.0
+            if 'time' not in detection_data:
+                detection_data['time'] = 0
             
             # Prepare the snapshot image
             filename = f"snapshot_{analysis_id}_{int(timestamp)}.jpg"
@@ -324,23 +277,25 @@ class CameraService:
                 timestamp=timestamp,
                 detection_type=detection_data.get('detection_type', 'snapshot'),
                 detection_data=detection_data,
-                processing_time=metadata.get('processing_time', 0.0) if metadata else 0.0,
+                processing_time=0.0,
                 frame_image=image_file
             )
             
             # Update analysis statistics
             analysis.total_frames_processed = frame_number
-            analysis.total_detections += len(detections)
+            detections_count = len(detection_data.get('detections', []))
+            analysis.total_detections += detections_count
             analysis.save()
             
-            logger.info(f"Saved snapshot {detection_frame.id} for analysis {analysis_id} with {len(detections)} detections")
+            detections_count = len(detection_data.get('detections', []))
+            logger.info(f"Saved snapshot {detection_frame.id} for analysis {analysis_id} with {detections_count} detections")
             
             return {
                 'snapshot_id': detection_frame.id,
                 'frame_number': frame_number,
                 'timestamp': timestamp,
                 'image_url': str(detection_frame.frame_image.url) if detection_frame.frame_image else None,
-                'detection_count': len(detections),
+                'detection_count': detections_count,
                 'analysis_id': analysis_id
             }
             
@@ -349,3 +304,67 @@ class CameraService:
         except Exception as e:
             logger.error(f"Error saving detection snapshot for analysis {analysis_id}: {e}")
             return {'error': str(e)}
+    
+    def re_detect(self, frame_id: int) -> Optional[Dict[str, Any]]:
+        """
+        Re-detect a specific detection frame using updated detection parameters
+        
+        Args:
+            frame_id: VideoDetectionFrame ID to re-detect
+            
+        Returns:
+            Dict with updated detection results or None if failed
+        """
+        try:
+            from ..models import VideoDetectionFrame
+            
+            # Get the detection frame
+            frame = VideoDetectionFrame.objects.get(id=frame_id)
+            analysis = frame.video_analysis
+            
+            # 标记这是重检测操作
+            analysis._is_re_detect = True
+            
+            if not self.detection_service:
+                logger.error("Detection service not available for re-detection")
+                return None
+            
+            # Check if frame has an image
+            if not frame.frame_image:
+                logger.error(f"Frame {frame_id} has no image for re-detection")
+                return None
+            
+            # Read the image data
+            with open(frame.frame_image.path, 'rb') as f:
+                image_data = f.read()
+            
+            # Perform re-detection with current parameters
+            result = self.detection_service.process_frame(
+                frame_data=image_data,
+                analysis=analysis,
+                frame_number=frame.frame_number,
+                timestamp=frame.timestamp,
+                enabled_detectors=[analysis.detection_type or 'barcode']
+            )
+            
+            if 'error' in result:
+                logger.error(f"Detection service error for frame {frame_id}: {result['error']}")
+                return None
+            
+            # 由于_save_detection_frame已经处理了数据格式化和保存，这里只需要返回结果
+            new_detections = result.get('detections', [])
+            logger.info(f"Re-detection completed for frame {frame_id}, found {len(new_detections)} detections")
+            
+            return {
+                'frame_id': frame_id,
+                'detection_count': len(new_detections),
+                'detections': new_detections,
+                'processing_time': frame.processing_time
+            }
+            
+        except VideoDetectionFrame.DoesNotExist:
+            logger.error(f"Frame {frame_id} not found")
+            return None
+        except Exception as e:
+            logger.error(f"Error in re_detect for frame {frame_id}: {e}")
+            return None

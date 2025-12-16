@@ -1,17 +1,26 @@
 import json
+import os
+import logging
+import base64
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
+from django.views.decorators.csrf import csrf_exempt
 from django.urls import reverse
 from django.contrib import messages
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db.models import Q
+from django.utils import timezone
 from .models import VideoFile, VideoAnalysis, VideoDetectionFrame
 from .forms import VideoUploadForm, VideoAnalysisForm
 from .services.video_services import VideoProcessor, generate_thumbnail
+from .services.camera_service import CameraService
 from file_processor.queue.manager import queue_manager
+
+# Configure logging
+logger = logging.getLogger(__name__)
 
 
 @login_required
@@ -23,7 +32,7 @@ def video_home(request):
 @login_required
 def test_camera_system(request):
     """Test camera detection system page"""
-    return render(request, 'file_processor/video/test_camera.html')
+    return render(request, 'file_processor/video/test_camera_detection.html')
 
 
 @login_required
@@ -182,6 +191,160 @@ def video_list(request):
     })
 
 
+@csrf_exempt
+@require_POST
+def capture_snapshot(request):
+    """
+    Save snapshot from camera detection
+    
+    Expected JSON payload:
+    {
+        "image": "base64_image_data",
+        "detections": [...],
+        "timestamp": "timestamp",
+        "detection_time": "detection_time",
+        "frame_count": "frame_count"
+    }
+    """
+    try:
+        camera_service = CameraService()
+        
+        # Get data from request
+        data = json.loads(request.body)
+        
+        # Extract image data and create detection_data for the service
+        image_data = data.get('image', '')
+        
+        # Create metadata from the flattened data structure
+        detection_data = {
+            'detections': data.get('detections', []),
+            'detection_type': data.get('detection_type', 'barcode'),
+            'threshold': data.get('threshold', 0.5),
+            'time': data.get('time', 0)
+        }
+
+                
+        # Decode base64 image data
+        import base64
+        if image_data.startswith('data:image/'):
+            # Remove data URL prefix
+            image_data = image_data.split(',')[1]
+        
+        image_bytes = base64.b64decode(image_data)
+        
+        # Create or get camera analysis session
+        analysis = camera_service.create_camera_analysis(
+                    user=request.user,
+                    title=f"Camera Detection Session {timezone.now().strftime('%Y-%m-%d %H:%M')}",
+                    detection_types=[detection_data.get('detection_type', 'barcode')],
+                    status='completed'
+                )
+        
+        # Save snapshot with proper parameters
+        snapshot_result = camera_service.save_detection_snapshot(
+            analysis_id=analysis.id,
+            image_data=image_bytes,
+            detection_data=detection_data
+        )
+        
+        if 'error' in snapshot_result:
+            return JsonResponse({
+                'success': False,
+                'message': snapshot_result['error']
+            }, status=400)
+        else:
+            return JsonResponse({
+                'success': True,
+                'message': 'Snapshot saved successfully',
+                'snapshot_id': snapshot_result.get('snapshot_id'),
+                'frame_number': snapshot_result.get('frame_number'),
+                'detection_count': snapshot_result.get('detection_count', 0)
+            })
+            
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'success': False,
+            'message': 'Invalid JSON data'
+        }, status=400)
+    except Exception as e:
+        logger.error(f"Error in capture_snapshot: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'message': f'Server error: {str(e)}'
+        }, status=500)
+
+
+
+
+
+@login_required
+def get_detection_history(request):
+    """Get camera detection history"""
+    try:
+        camera_service = CameraService()
+        detection_history = camera_service.get_detection_history()
+        
+        return JsonResponse({
+            'success': True,
+            'data': detection_history
+        })
+        
+    except Exception as e:
+        logger.error(f"Error in get_detection_history: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'message': f'Server error: {str(e)}'
+        }, status=500)
+
+
+
+
+
+@csrf_exempt
+@require_POST
+def re_detect(request):
+    """
+    Re-detect specified video frame
+    Expected JSON payload: {"frame_id": 123}
+    """
+    try:
+        camera_service = CameraService()
+        data = json.loads(request.body)
+        
+        frame_id = data.get('frame_id')
+        if not frame_id:
+            return JsonResponse({
+                'success': False,
+                'message': 'frame_id is required'
+            }, status=400)
+        
+        re_detection_result = camera_service.re_detect(frame_id)
+        
+        if re_detection_result:
+            return JsonResponse({
+                'success': True,
+                'message': 'Re-detection completed successfully',
+                'data': re_detection_result
+            })
+        else:
+            return JsonResponse({
+                'success': False,
+                'message': 'Re-detection failed'
+            }, status=400)
+            
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'success': False,
+            'message': 'Invalid JSON data'
+        }, status=400)
+    except Exception as e:
+        logger.error(f"Error in re_detect: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'message': f'Server error: {str(e)}'
+        }, status=500)
+
+
 def get_video_list_data(request):
     """AJAX endpoint to get paginated video data"""
     user = request.user
@@ -280,41 +443,71 @@ def get_video_list_data(request):
 @login_required
 def video_analysis_history(request):
     """Video analysis history page"""
-    video_files = VideoFile.objects.filter(user=request.user)
-    analyses = VideoAnalysis.objects.filter(user=request.user).select_related('video_file')
+    # Debug: Print user info and count
+    print(f"DEBUG: Current user: {request.user.username} (ID: {request.user.id})")
     
-    # Serialize for JavaScript
+    # Get analyses with debug info (show all users' analyses)
+    analyses = VideoAnalysis.objects.all().select_related('video_file')
+    print(f"DEBUG: Found {analyses.count()} total analyses (all users)")
+    
+    # Debug: Print all analyses in database
+    all_analyses = VideoAnalysis.objects.all()
+    print(f"DEBUG: Total analyses in database: {all_analyses.count()}")
+    for analysis in all_analyses:
+        print(f"  Analysis ID: {analysis.id}, User: {analysis.user.username if analysis.user else 'None'}, Video: {analysis.video_file}")
+    
+    # Serialize for JavaScript with error handling
     analyses_data = []
     for analysis in analyses:
-        # Handle camera analysis (no video_file) vs file analysis
-        video_file_info = {
-            'id': None,  # Camera analysis has no video file
-            'original_filename': 'Camera Snapshot',
-            'file_size': 0,
-            'thumbnail': None,
-        }
-        
-        if analysis.video_file:
+        try:
+            # Handle camera analysis (no video_file) vs file analysis
             video_file_info = {
-                'id': analysis.video_file.id,
-                'original_filename': analysis.video_file.original_filename,
-                'file_size': analysis.video_file.file_size,
-                'thumbnail': analysis.video_file.thumbnail.url if analysis.video_file.thumbnail else None,
+                'id': None,  # Camera analysis has no video file
+                'original_filename': 'Camera Snapshot',
+                'file_size': 0,
+                'thumbnail': None,
             }
-        
-        analyses_data.append({
-            'id': analysis.id,
-            'video_file': video_file_info,
-            'analysis_type': analysis.analysis_type,
-            'created_at': analysis.created_at.isoformat(),
-            'completed_at': analysis.completed_at.isoformat() if analysis.completed_at else None,
-            'status': analysis.status,
-            'total_frames_processed': analysis.total_frames_processed,
-            'total_detections': analysis.total_detections,
-        })
+            
+            if analysis.video_file:
+                video_file_info = {
+                    'id': analysis.video_file.id,
+                    'original_filename': analysis.video_file.original_filename,
+                    'file_size': analysis.video_file.file_size or 0,
+                    'thumbnail': analysis.video_file.thumbnail.url if analysis.video_file.thumbnail else None,
+                }
+            
+            # Handle result_summary parsing
+            result_summary_data = analysis.result_summary
+            if isinstance(result_summary_data, str):
+                try:
+                    result_summary_data = json.loads(result_summary_data)
+                except:
+                    result_summary_data = {'raw': result_summary_data}
+            
+            analyses_data.append({
+                'id': analysis.id,
+                'video_file': video_file_info,
+                'analysis_type': analysis.analysis_type,
+                'detection_type': analysis.detection_type or 'unknown',
+                'result_summary': result_summary_data or {},
+                'user': {
+                    'id': analysis.user.id if analysis.user else None,
+                    'username': analysis.user.username if analysis.user else 'Unknown'
+                },
+                'created_at': analysis.created_at.isoformat(),
+                'completed_at': analysis.completed_at.isoformat() if analysis.completed_at else None,
+                'status': analysis.status,
+                'total_frames_processed': analysis.total_frames_processed or 0,
+                'total_detections': analysis.total_detections or 0,
+            })
+        except Exception as e:
+            print(f"Error serializing analysis {analysis.id}: {e}")
+            continue
+    
+    print(f"DEBUG: Serialized {len(analyses_data)} analyses")
     
     return render(request, 'file_processor/video/video_analysis_history.html', {
-        'video_files': video_files,
+        'video_files': VideoFile.objects.all(),
         'analyses': json.dumps(analyses_data)
     })
 
@@ -370,9 +563,28 @@ def delete_video_file(request, video_file_id):
 @login_required
 def delete_analysis(request, analysis_id):
     """Delete a video analysis"""
-    analysis = get_object_or_404(VideoAnalysis, id=analysis_id, user=request.user)
-    analysis.delete()
-    messages.success(request, 'Analysis deleted successfully!')
+    try:
+        try:
+            analysis = VideoAnalysis.objects.get(id=analysis_id)
+        except VideoAnalysis.DoesNotExist:
+            return JsonResponse({'success': False, 'message': f'Analysis {analysis_id} not found or access denied'})
+        
+        # Delete associated detection frame files
+        for frame in analysis.detection_frames.all():
+            if frame.frame_image and os.path.exists(frame.frame_image.path):
+                try:
+                    os.remove(frame.frame_image.path)
+                except OSError as e:
+                    logger.warning(f"Failed to delete frame image {frame.frame_image.path}: {e}")
+        
+        # Delete analysis record (cascade will delete related detection frames)
+        analysis.delete()
+        
+        return JsonResponse({'success': True, 'message': 'Analysis deleted successfully!'})
+        
+    except Exception as e:
+        logger.error(f"Error deleting analysis {analysis_id}: {e}")
+        return JsonResponse({'success': False, 'message': str(e)})
 
 
 @login_required
@@ -392,7 +604,36 @@ def video_conversion_status(request, video_file_id):
     return redirect('video:video_analysis_history')
 
 
-@require_POST
+@login_required
+def get_analysis_details(request, analysis_id):
+    """Get analysis details for modal display"""
+    analysis = get_object_or_404(VideoAnalysis, id=analysis_id, user=request.user)
+    detection_frames = analysis.detection_frames.all().order_by('frame_number')
+    
+    # Prepare data for the template
+    frames_data = []
+    for frame in detection_frames:
+        # Convert detection_data to JSON string for pretty display
+        detection_data_json = json.dumps(frame.detection_data, indent=2, ensure_ascii=False) if frame.detection_data else None
+        
+        frames_data.append({
+            'id': frame.id,
+            'frame_number': frame.frame_number,
+            'frame_image_url': frame.frame_image.url if frame.frame_image else None,
+            'detection_data': detection_data_json,
+            'detection_type': frame.detection_type,
+            'processing_time': frame.processing_time,
+            'timestamp': frame.timestamp,
+            'created_at': frame.created_at,
+        })
+    
+    # Render the partial template
+    return render(request, 'file_processor/video/video_analysis_partial.html', {
+        'analysis': analysis,
+        'frames_data': frames_data,
+    })
+
+
 @login_required
 def generate_video_thumbnail(request, video_file_id):
     """Generate thumbnail for an existing video file"""

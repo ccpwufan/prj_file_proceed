@@ -1,0 +1,274 @@
+<!-- Modal for displaying detection results -->
+<div id="detection-results-modal" class="fixed inset-0 z-50 overflow-y-auto" style="display: none;">
+    <div class="flex items-center justify-center min-h-screen px-4">
+        <div class="fixed inset-0 bg-black opacity-50" onclick="closeModal()"></div>
+        
+        <div class="relative bg-white rounded-lg max-w-6xl w-full max-h-[90vh] overflow-hidden">
+            <div class="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between">
+                <h3 class="text-lg font-semibold text-gray-900">
+                    Detection Results - {{ analysis.get_analysis_type_display }}
+                </h3>
+                <button onclick="closeModal()" class="text-gray-400 hover:text-gray-500">
+                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            <div class="p-6 overflow-y-auto max-h-[calc(90vh-80px)]">
+                <!-- Analysis Summary -->
+                <div class="mb-6 p-4 bg-gray-50 rounded-lg">
+                    <h4 class="text-md font-semibold mb-2">Analysis Summary</h4>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                        <div>
+                            <span class="text-gray-600">Status:</span>
+                            <span class="ml-2 px-2 py-1 text-xs font-semibold rounded-full
+                                {% if analysis.status == 'completed' %}bg-green-100 text-green-800
+                                {% elif analysis.status == 'processing' %}bg-yellow-100 text-yellow-800
+                                {% else %}bg-red-100 text-red-800{% endif %}">
+                                {{ analysis.get_status_display }}
+                            </span>
+                        </div>
+                        <div>
+                            <span class="text-gray-600">Created:</span>
+                            <span class="ml-2">{{ analysis.created_at|date:"Y-m-d H:i" }}</span>
+                        </div>
+                        <div>
+                            <span class="text-gray-600">Frames Processed:</span>
+                            <span class="ml-2">{{ analysis.total_frames_processed }}</span>
+                        </div>
+                        <div>
+                            <span class="text-gray-600">Total Detections:</span>
+                            <span class="ml-2">{{ analysis.total_detections }}</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Detection Frames -->
+                <div class="space-y-6">
+                    <h4 class="text-md font-semibold">Detection Frames</h4>
+                    
+                    {% if frames_data %}
+                        {% for frame in frames_data %}
+                            <div class="border rounded-lg p-4">
+                                <div class="flex items-start justify-between mb-3">
+                                    <h5 class="text-sm font-medium">Frame #{{ frame.frame_number }}</h5>
+                                    <div class="flex items-center space-x-4">
+                                        <div class="text-xs text-gray-500">
+                                            Timestamp: {{ frame.timestamp }}s
+                                        </div>
+                                        <!-- Re-detection controls -->
+                                        <div class="mb-4 p-3 bg-gray-50 rounded-lg">
+                                            <label class="block text-sm font-medium text-gray-700 mb-2">Re-detection Settings</label>
+                                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                                <div>
+                                                    <label class="block text-xs text-gray-500 mb-1">Detection Type</label>
+                                                    <select id="detect-type-{{ frame.id }}" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm">
+                                                        <option value="barcode" {% if frame.detection_type == 'barcode' %}selected{% endif %}>Barcode</option>
+                                                        <option value="phone" {% if frame.detection_type == 'phone' %}selected{% endif %}>Phone</option>
+                                                        <option value="yellowbox" {% if frame.detection_type == 'yellowbox' %}selected{% endif %}>Yellow Box</option>
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <label class="block text-xs text-gray-500 mb-1">Threshold (0-1)</label>
+                                                    <input type="number" id="threshold-{{ frame.id }}" 
+                                                           min="0" max="1" step="0.05" value="0.3"
+                                                           class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm">
+                                                </div>
+                                                <div class="flex items-end">
+                                                    <button type="button" 
+                                                            id="re-detect-btn-{{ frame.id }}"
+                                                            class="re-detect-btn w-full px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium"
+                                                            data-frame-id="{{ frame.id }}">
+                                                        Re-detect
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                                    <!-- Frame Image -->
+                                    <div>
+                                        {% if frame.frame_image_url %}
+                                            <img src="{{ frame.frame_image_url }}" 
+                                                 alt="Frame {{ frame.frame_number }}" 
+                                                 class="w-full rounded-lg border">
+                                        {% else %}
+                                            <div class="bg-gray-200 rounded-lg p-8 text-center text-gray-500">
+                                                No image available
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <!-- Detection Data -->
+                                    <div>
+                                        <h6 class="text-sm font-medium mb-2">Detection Data:</h6>
+                                        <div class="space-y-2" id="detection-results-{{ frame.id }}">
+                                            {% if frame.detection_data %}
+                                                <div class="bg-gray-50 p-3 rounded text-xs max-h-64 overflow-auto">
+                                                    <pre class="whitespace-pre-wrap font-mono">{{ frame.detection_data }}</pre>
+                                                </div>
+                                            {% else %}
+                                                <div class="text-xs text-gray-500">No detection data available</div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center py-8 text-gray-500">
+                            No detection frames available
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function closeModal() {
+    const modal = document.getElementById('detection-results-modal');
+    if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = 'auto'; // Restore background scrolling
+    }
+}
+
+function showModal() {
+    const modal = document.getElementById('detection-results-modal');
+    if (modal) {
+        modal.style.display = 'block';
+        document.body.style.overflow = 'hidden'; // Prevent background scrolling
+
+        // Add event listeners to all re-detect buttons
+        document.querySelectorAll('.re-detect-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                const frameId = this.getAttribute('data-frame-id');
+                const selectElement = document.getElementById(`detect-type-${frameId}`);
+                const detectionType = selectElement.value;
+                reDetectFrame(frameId, detectionType);
+            });
+        });
+    }
+}
+
+// Re-detect frame function
+function reDetectFrame(frameId, detectionType) {
+    // Get button for UI feedback
+    const button = document.getElementById(`re-detect-btn-${frameId}`);
+    if (!button) {
+        console.error(`Button not found for frame ID: ${frameId}`);
+        return;
+    }
+    
+    // Get threshold value
+    const thresholdInput = document.getElementById(`threshold-${frameId}`);
+    const threshold = thresholdInput ? parseFloat(thresholdInput.value) : 0.3;
+    
+    const originalText = button.textContent;
+    button.textContent = 'Processing...';
+    button.disabled = true;
+    
+    // Send re-detection request
+    fetch('/video/re-detect/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            frame_id: frameId,
+            detection_type: detectionType,
+            threshold: threshold
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Show success message
+            alert(`Re-detection completed! Found ${data.detection_count} objects.`);
+            
+            // Update the detection results section instead of reloading the page
+            updateDetectionResults(frameId, data);
+        } else {
+            alert(`Re-detection failed: ${data.error}`);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Re-detection failed due to network error');
+    })
+    .finally(() => {
+        // Restore button state
+        if (button) {
+            button.textContent = originalText;
+            button.disabled = false;
+        }
+    });
+}
+
+// Update detection results section after re-detection
+function updateDetectionResults(frameId, data) {
+    // Find the detection results section for this frame
+    const detectionResultsSection = document.querySelector(`#detection-results-${frameId}`);
+    
+    if (detectionResultsSection) {
+        // Clear current content
+        detectionResultsSection.innerHTML = '';
+        
+        // Add new content based on detection results
+        if (data.detections && data.detections.length > 0) {
+            // Create container for detections
+            const detectionsContainer = document.createElement('div');
+            detectionsContainer.className = 'space-y-2';
+            
+            data.detections.forEach((detection, index) => {
+                const detectionDiv = document.createElement('div');
+                detectionDiv.className = 'bg-blue-50 p-2 rounded';
+                detectionDiv.innerHTML = `
+                    <div class="text-xs font-medium text-blue-800">
+                        Detection ${index + 1}
+                    </div>
+                    <div class="text-xs mt-1 p-2 bg-white rounded">
+                        <div>Class: ${detection.class}</div>
+                        <div>Confidence: ${parseFloat(detection.confidence).toFixed(3)}</div>
+                        <div>BBox: [${detection.bbox.join(', ')}]</div>
+                        ${detection.data ? Object.keys(detection.data).map(key => 
+                            `<div>${key.charAt(0).toUpperCase() + key.slice(1)}: ${detection.data[key]}</div>`
+                        ).join('') : ''}
+                    </div>
+                `;
+                detectionsContainer.appendChild(detectionDiv);
+            });
+            
+            detectionResultsSection.appendChild(detectionsContainer);
+        } else {
+            // No detections found
+            detectionResultsSection.innerHTML = '<div class="text-gray-500 text-sm">No objects detected</div>';
+        }
+        
+        // Also update the JSON display area with formatted data
+        const jsonData = {
+            detections: data.detections,
+            detection_type: data.detection_type,
+            threshold: data.threshold,
+            time: data.time
+        };
+        
+        const jsonDisplay = document.createElement('div');
+        jsonDisplay.className = 'bg-gray-50 p-3 rounded text-xs max-h-64 overflow-auto';
+        jsonDisplay.innerHTML = `<pre class="whitespace-pre-wrap font-mono">${JSON.stringify(jsonData, null, 2)}</pre>`;
+        
+        // Insert the JSON display before the visual display
+        detectionResultsSection.appendChild(jsonDisplay);
+    }
+}
+
+// Make functions globally available
+window.closeModal = closeModal;
+window.showModal = showModal;
+window.reDetectFrame = reDetectFrame;
+</script>
