@@ -62,7 +62,7 @@ class CameraService:
         result_summary_data = {
             'detection_types': detection_types,
             'camera_session': True,
-            'session_start': timezone.now().isoformat()
+            'session_start': timezone.localtime().isoformat()
         }
         
         # Add title if provided
@@ -77,67 +77,7 @@ class CameraService:
         logger.info(f"Created camera analysis {analysis.id} for user {user.username}")
         return analysis
     
-    def process_camera_frame(self, analysis_id: int, frame_data: str, 
-                           detection_types: List[str] = None) -> Dict[str, Any]:
-        """
-        Process a camera frame (base64 encoded)
-        
-        Args:
-            analysis_id: VideoAnalysis ID
-            frame_data: Base64 encoded frame data
-            detection_types: List of detection types to use
-        
-        Returns:
-            Dict containing detection results
-        """
-        try:
-            analysis = VideoAnalysis.objects.get(id=analysis_id)
-            
-            # Decode base64 frame data
-            if frame_data.startswith('data:image/'):
-                # Remove data URL prefix
-                frame_data = frame_data.split(',')[1]
-            
-            frame_bytes = base64.b64decode(frame_data)
-            
-            # Generate frame number and timestamp
-            frame_number = analysis.total_frames_processed + 1
-            timestamp = time.time()
-            
-            if not self.detection_service:
-                return {
-                    'error': 'Detection service not available',
-                    'frame_number': frame_number
-                }
-            
-            # Process frame with detection service
-            result = self.detection_service.process_frame(
-                frame_data=frame_bytes,
-                analysis=analysis,
-                frame_number=frame_number,
-                timestamp=timestamp,
-                enabled_detectors=detection_types
-            )
-            
-            # Update analysis statistics
-            analysis.total_frames_processed = frame_number
-            analysis.total_detections += result['summary']['total_count']
-            analysis.save()
-            
-            # Add camera-specific metadata to result
-            result['camera'] = {
-                'session_id': analysis_id,
-                'timestamp': timestamp,
-                'frame_rate': 1.0 / analysis.frame_interval if analysis.frame_interval > 0 else 1.0
-            }
-            
-            return result
-            
-        except VideoAnalysis.DoesNotExist:
-            return {'error': f'Analysis {analysis_id} not found'}
-        except Exception as e:
-            logger.error(f"Error processing camera frame for analysis {analysis_id}: {e}")
-            return {'error': str(e)}
+
     
     def get_camera_analysis_info(self, analysis_id: int) -> Optional[Dict[str, Any]]:
         """
@@ -255,7 +195,7 @@ class CameraService:
             
             # Create a detection frame for the snapshot
             frame_number = analysis.total_frames_processed + 1
-            timestamp = time.time()
+            timestamp = timezone.now().timestamp()
             
             # The detection_data is already prepared from frontend
             # Just ensure required fields exist
@@ -296,7 +236,8 @@ class CameraService:
                 'timestamp': timestamp,
                 'image_url': str(detection_frame.frame_image.url) if detection_frame.frame_image else None,
                 'detection_count': detections_count,
-                'analysis_id': analysis_id
+                'analysis_id': analysis_id,
+                'saved_at': timezone.localtime().isoformat()
             }
             
         except VideoAnalysis.DoesNotExist:
@@ -305,66 +246,192 @@ class CameraService:
             logger.error(f"Error saving detection snapshot for analysis {analysis_id}: {e}")
             return {'error': str(e)}
     
-    def re_detect(self, frame_id: int) -> Optional[Dict[str, Any]]:
+    # Session management methods
+    
+    def start_session(self, user, title: str = None, detection_types: List[str] = None) -> VideoAnalysis:
         """
-        Re-detect a specific detection frame using updated detection parameters
+        Start a new camera detection session (alias for create_camera_analysis)
         
         Args:
-            frame_id: VideoDetectionFrame ID to re-detect
-            
+            user: User instance
+            title: Optional title for the session
+            detection_types: List of detection types to enable
+        
         Returns:
-            Dict with updated detection results or None if failed
+            VideoAnalysis instance
+        """
+        return self.create_camera_analysis(user, title, detection_types, status='processing')
+    
+    def get_session_info(self, session_id: int) -> Optional[Dict[str, Any]]:
+        """
+        Get information about a camera session (alias for get_camera_analysis_info)
+        
+        Args:
+            session_id: VideoAnalysis ID
+        
+        Returns:
+            Dict with session information or None if not found
+        """
+        return self.get_camera_analysis_info(session_id)
+    
+    def close_session(self, session_id: int) -> Dict[str, Any]:
+        """
+        Close a camera detection session (alias for end_camera_session)
+        
+        Args:
+            session_id: VideoAnalysis ID
+        
+        Returns:
+            Dict with session summary
+        """
+        return self.end_camera_session(session_id)
+    
+    def update_session_status(self, session_id: int, status: str) -> Dict[str, Any]:
+        """
+        Update the status of a camera session
+        
+        Args:
+            session_id: VideoAnalysis ID
+            status: New status ('processing', 'completed', 'error', etc.)
+        
+        Returns:
+            Dict with update result
         """
         try:
-            from ..models import VideoDetectionFrame
+            analysis = VideoAnalysis.objects.get(id=session_id)
+            old_status = analysis.status
+            analysis.status = status
+            analysis.save()
             
-            # Get the detection frame
-            frame = VideoDetectionFrame.objects.get(id=frame_id)
-            analysis = frame.video_analysis
-            
-            # 标记这是重检测操作
-            analysis._is_re_detect = True
-            
-            if not self.detection_service:
-                logger.error("Detection service not available for re-detection")
-                return None
-            
-            # Check if frame has an image
-            if not frame.frame_image:
-                logger.error(f"Frame {frame_id} has no image for re-detection")
-                return None
-            
-            # Read the image data
-            with open(frame.frame_image.path, 'rb') as f:
-                image_data = f.read()
-            
-            # Perform re-detection with current parameters
-            result = self.detection_service.process_frame(
-                frame_data=image_data,
-                analysis=analysis,
-                frame_number=frame.frame_number,
-                timestamp=frame.timestamp,
-                enabled_detectors=[analysis.detection_type or 'barcode']
-            )
-            
-            if 'error' in result:
-                logger.error(f"Detection service error for frame {frame_id}: {result['error']}")
-                return None
-            
-            # 由于_save_detection_frame已经处理了数据格式化和保存，这里只需要返回结果
-            new_detections = result.get('detections', [])
-            logger.info(f"Re-detection completed for frame {frame_id}, found {len(new_detections)} detections")
+            logger.info(f"Updated session {session_id} status from '{old_status}' to '{status}'")
             
             return {
-                'frame_id': frame_id,
-                'detection_count': len(new_detections),
-                'detections': new_detections,
-                'processing_time': frame.processing_time
+                'session_id': session_id,
+                'old_status': old_status,
+                'new_status': status,
+                'updated_at': analysis.updated_at.isoformat(),
+                'success': True
             }
             
-        except VideoDetectionFrame.DoesNotExist:
-            logger.error(f"Frame {frame_id} not found")
+        except VideoAnalysis.DoesNotExist:
+            return {'error': f'Session {session_id} not found', 'success': False}
+        except Exception as e:
+            logger.error(f"Error updating session status for {session_id}: {e}")
+            return {'error': str(e), 'success': False}
+    
+    def get_active_sessions(self, user=None) -> List[Dict[str, Any]]:
+        """
+        Get all active (processing) camera sessions
+        
+        Args:
+            user: Optional user filter
+        
+        Returns:
+            List of active session information
+        """
+        try:
+            analyses = VideoAnalysis.objects.filter(
+                video_file__isnull=True,  # Camera analysis only
+                status='processing'
+            )
+            
+            if user:
+                analyses = analyses.filter(user=user)
+            
+            analyses = analyses.order_by('-created_at')
+            
+            sessions = []
+            for analysis in analyses:
+                sessions.append({
+                    'session_id': analysis.id,
+                    'user': analysis.user.username if analysis.user else 'Unknown',
+                    'title': analysis.result_summary.get('title', '') if isinstance(analysis.result_summary, dict) else '',
+                    'detection_types': analysis.result_summary.get('detection_types', ['barcode']) if isinstance(analysis.result_summary, dict) else ['barcode'],
+                    'created_at': analysis.created_at.isoformat(),
+                    'total_frames': analysis.total_frames_processed,
+                    'total_detections': analysis.total_detections,
+                    'is_camera_session': True
+                })
+            
+            return sessions
+            
+        except Exception as e:
+            logger.error(f"Error getting active sessions: {e}")
+            return []
+    
+    def get_session_statistics(self, session_id: int) -> Optional[Dict[str, Any]]:
+        """
+        Get detailed statistics for a specific session
+        
+        Args:
+            session_id: VideoAnalysis ID
+        
+        Returns:
+            Dict with session statistics or None if not found
+        """
+        try:
+            analysis = VideoAnalysis.objects.get(id=session_id)
+            
+            # Get all detection frames
+            frames = analysis.detection_frames.all()
+            
+            # Calculate statistics
+            detection_counts = {}
+            detection_by_type = {}
+            total_processing_time = 0
+            frame_count = len(frames)
+            
+            for frame in frames:
+                detections = frame.detection_data.get('detections', [])
+                frame_processing_time = frame.processing_time or 0
+                total_processing_time += frame_processing_time
+                
+                for detection in detections:
+                    det_type = detection.get('type', 'unknown')
+                    det_class = detection.get('class', 'unknown')
+                    
+                    detection_counts[det_type] = detection_counts.get(det_type, 0) + 1
+                    
+                    if det_type not in detection_by_type:
+                        detection_by_type[det_type] = {}
+                    detection_by_type[det_type][det_class] = detection_by_type[det_type].get(det_class, 0) + 1
+            
+            # Calculate session duration
+            session_duration = None
+            if isinstance(analysis.result_summary, dict):
+                session_start = analysis.result_summary.get('session_start')
+                if analysis.status == 'completed':
+                    session_end = analysis.result_summary.get('session_end')
+                    if session_start and session_end:
+                        try:
+                            from datetime import datetime
+                            start = datetime.fromisoformat(session_start.replace('Z', '+00:00'))
+                            end = datetime.fromisoformat(session_end.replace('Z', '+00:00'))
+                            session_duration = (end - start).total_seconds()
+                        except (ValueError, AttributeError):
+                            pass
+            
+            return {
+                'session_id': session_id,
+                'session_duration_seconds': session_duration,
+                'total_frames': frame_count,
+                'total_detections': analysis.total_detections,
+                'detection_counts': detection_counts,
+                'detection_by_type_and_class': detection_by_type,
+                'average_processing_time_ms': total_processing_time / frame_count if frame_count > 0 else 0,
+                'detection_rate_per_frame': analysis.total_detections / frame_count if frame_count > 0 else 0,
+                'status': analysis.status,
+                'created_at': analysis.created_at.isoformat(),
+                'updated_at': analysis.updated_at.isoformat(),
+                'detection_threshold': analysis.detection_threshold,
+                'performance_metrics': {
+                    'total_processing_time_ms': total_processing_time,
+                    'frames_per_second': frame_count / session_duration if session_duration and session_duration > 0 else 0
+                }
+            }
+            
+        except VideoAnalysis.DoesNotExist:
             return None
         except Exception as e:
-            logger.error(f"Error in re_detect for frame {frame_id}: {e}")
+            logger.error(f"Error getting session statistics for {session_id}: {e}")
             return None

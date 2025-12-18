@@ -37,8 +37,8 @@ class MultiTypeDetector:
                 - detector_configs: Individual detector configurations
         """
         self.config = {
-            'enable_parallel': True,
-            'max_workers': 4,
+            'enable_parallel': False, #True,
+            'max_workers': 1,
             'detector_configs': {},
             **(config or {})
         }

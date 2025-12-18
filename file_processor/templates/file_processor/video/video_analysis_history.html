@@ -4,63 +4,7 @@
 
 {% block content %}
 <div x-data="videoAnalysis()" x-init="init()">
-    <!-- Search and Filter -->
-    <div class="bg-white shadow rounded-lg mb-6">
-        <div class="px-4 py-5 sm:p-6">
-            <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
-                <h3 class="text-lg leading-6 font-medium text-gray-900">Video Analysis</h3>
-                <div class="mt-4 md:mt-0 flex space-x-3">
-                    <button @click="refreshData()" 
-                            class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-medium">
-                        Refresh
-                    </button>
-                    <button @click="exportHistory()" 
-                            class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md text-sm font-medium">
-                        Export Records
-                    </button>
-                </div>
-            </div>
-            
-            <!-- Search Bar -->
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div class="md:col-span-2">
-                    <div class="relative">
-                        <input type="text" 
-                               x-model="searchQuery"
-                               @input="filterResults()"
-                               placeholder="Search video filenames..." 
-                               class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
-                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                            </svg>
-                        </div>
-                    </div>
-                </div>
-                
-                <div>
-                    <select x-model="filterStatus" @change="filterResults()" 
-                            class="w-full border border-gray-300 rounded-md py-2 px-3 focus:ring-blue-500 focus:border-blue-500">
-                        <option value="">All Status</option>
-                        <option value="uploaded">Uploaded</option>
-                        <option value="processing">Processing</option>
-                        <option value="processed">Processed</option>
-                        <option value="failed">Failed</option>
-                    </select>
-                </div>
-                
-                <div>
-                    <select x-model="filterAnalysisType" @change="filterResults()" 
-                            class="w-full border border-gray-300 rounded-md py-2 px-3 focus:ring-blue-500 focus:border-blue-500">
-                        <option value="">All Analysis Types</option>
-                        <option value="phone_detection">Phone Detection</option>
-                        <option value="object_detection">Object Detection</option>
-                        <option value="custom">Custom Analysis</option>
-                    </select>
-                </div>
-            </div>
-        </div>
-    </div>
+
 
 
 
@@ -90,7 +34,7 @@
                     </div>
                 </div>
                 <div class="text-sm text-gray-500">
-                    Showing <span x-text="filteredAnalyses.length"></span> / <span x-text="totalAnalyses"></span> records
+                    Showing <span x-text="analyses.length"></span> records
                 </div>
             </div>
             
@@ -108,33 +52,23 @@
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 ID
                             </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                                @click="sortBy('video_file')">
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 Video File
-                                <span x-show="sortField === 'video_file'" x-text="sortOrder === 'asc' ? '↑' : '↓'"></span>
                             </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                                @click="sortBy('analysis_type')">
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 Analysis Type
-                                <span x-show="sortField === 'analysis_type'" x-text="sortOrder === 'asc' ? '↑' : '↓'"></span>
                             </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                                @click="sortBy('detection_type')">
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 Detection Type
-                                <span x-show="sortField === 'detection_type'" x-text="sortOrder === 'asc' ? '↑' : '↓'"></span>
                             </th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 Result Summary
                             </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                                @click="sortBy('user')">
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 User
-                                <span x-show="sortField === 'user'" x-text="sortOrder === 'asc' ? '↑' : '↓'"></span>
                             </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                                @click="sortBy('created_at')">
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 Created Time
-                                <span x-show="sortField === 'created_at'" x-text="sortOrder === 'asc' ? '↑' : '↓'"></span>
                             </th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 Status
@@ -230,8 +164,8 @@
             <div class="mt-4 flex items-center justify-between">
                 <div class="text-sm text-gray-700">
                     Showing <span x-text="(currentPage - 1) * pageSize + 1"></span> to 
-                    <span x-text="Math.min(currentPage * pageSize, filteredAnalyses.length)"></span> of 
-                    <span x-text="filteredAnalyses.length"></span> records
+                    <span x-text="Math.min(currentPage * pageSize, analyses.length)"></span> of 
+                    <span x-text="analyses.length"></span> records
                 </div>
                 <div class="flex space-x-2">
                     <button @click="previousPage()" 
@@ -260,12 +194,6 @@
 function videoAnalysis() {
     return {
         analyses: {{ analyses|safe }} || [],  // Ensure we always have an array
-        filteredAnalyses: [],
-        searchQuery: '',
-        filterStatus: '',
-        filterAnalysisType: '',
-        sortField: 'created_at',
-        sortOrder: 'desc',
         currentPage: 1,
         pageSize: 10,
         
@@ -285,8 +213,6 @@ function videoAnalysis() {
             if (!Array.isArray(this.analyses)) {
                 this.analyses = [];
             }
-            this.filterResults();
-            this.calculateStatistics();
             
             // Watch for changes in selection
             this.$watch('selectedAnalyses', () => {
@@ -299,123 +225,14 @@ function videoAnalysis() {
             });
         },
         
-        get totalAnalyses() {
-            return this.analyses.length;
-        },
-        
         get totalPages() {
-            return Math.ceil(this.filteredAnalyses.length / this.pageSize);
+            return Math.ceil(this.analyses.length / this.pageSize);
         },
         
         get paginatedAnalyses() {
             const start = (this.currentPage - 1) * this.pageSize;
             const end = start + this.pageSize;
-            return this.filteredAnalyses.slice(start, end);
-        },
-        
-        statistics: {
-            get totalVideos() {
-                // Count unique video files (excluding camera analyses)
-                if (!Array.isArray(this.analyses)) return 0;
-                return new Set(this.analyses.filter(a => a.video_file && a.video_file.id).map(a => a.video_file.id)).size;
-            },
-            get completedAnalyses() {
-                if (!Array.isArray(this.analyses)) return 0;
-                return this.analyses.filter(a => a.status === 'completed').length;
-            },
-            get processingAnalyses() {
-                if (!Array.isArray(this.analyses)) return 0;
-                return this.analyses.filter(a => a.status === 'processing').length;
-            },
-            get totalDetections() {
-                if (!Array.isArray(this.analyses)) return 0;
-                return this.analyses.reduce((total, a) => total + (a.total_detections || 0), 0);
-            }
-        },
-        
-        calculateStatistics() {
-            // Force reactivity update
-            this.statistics = { ...this.statistics };
-        },
-        
-        filterResults() {
-            // Ensure we have an array to work with
-            if (!Array.isArray(this.analyses)) {
-                this.filteredAnalyses = [];
-                return;
-            }
-            
-            let filtered = [...this.analyses];
-            
-            // Search query - handle camera snapshots
-            if (this.searchQuery) {
-                const query = this.searchQuery.toLowerCase();
-                filtered = filtered.filter(analysis => {
-                    const filename = analysis.video_file ? 
-                        analysis.video_file.original_filename.toLowerCase() : 
-                        'camera snapshot';
-                    return filename.includes(query);
-                });
-            }
-            
-            // Status filter
-            if (this.filterStatus) {
-                filtered = filtered.filter(analysis => analysis.status === this.filterStatus);
-            }
-            
-            // Analysis type filter
-            if (this.filterAnalysisType) {
-                filtered = filtered.filter(analysis => analysis.analysis_type === this.filterAnalysisType);
-            }
-            
-            // Sort - handle camera snapshots
-            filtered.sort((a, b) => {
-                let aVal, bVal;
-                
-                switch (this.sortField) {
-                    case 'video_file':
-                        aVal = a.video_file ? a.video_file.original_filename : 'Camera Snapshot';
-                        bVal = b.video_file ? b.video_file.original_filename : 'Camera Snapshot';
-                        break;
-                    case 'analysis_type':
-                        aVal = a.analysis_type;
-                        bVal = b.analysis_type;
-                        break;
-                    case 'detection_type':
-                        aVal = a.detection_type;
-                        bVal = b.detection_type;
-                        break;
-                    case 'user':
-                        aVal = a.user ? a.user.username : '';
-                        bVal = b.user ? b.user.username : '';
-                        break;
-                    case 'created_at':
-                        aVal = new Date(a.created_at);
-                        bVal = new Date(b.created_at);
-                        break;
-                    default:
-                        return 0;
-                }
-                
-                if (this.sortOrder === 'asc') {
-                    return aVal > bVal ? 1 : -1;
-                } else {
-                    return aVal < bVal ? 1 : -1;
-                }
-            });
-            
-            this.filteredAnalyses = filtered;
-            this.currentPage = 1; // Reset to first page
-        },
-        
-        sortBy(field) {
-            if (this.sortField === field) {
-                this.sortOrder = this.sortOrder === 'asc' ? 'desc' : 'asc';
-            } else {
-                this.sortField = field;
-                this.sortOrder = 'asc';
-            }
-            this.filterResults();
+            return this.analyses.slice(start, end);
         },
         
         previousPage() {
@@ -569,20 +386,14 @@ function videoAnalysis() {
             
             // Force DOM update with nextTick
             this.$nextTick(() => {
-                // Update filtered analyses and statistics
-                this.filterResults();
-                this.calculateStatistics();
+                // Reset to first page if current page is empty
+                if (this.currentPage > this.totalPages && this.currentPage > 1) {
+                    this.currentPage = this.totalPages;
+                }
             });
         },
         
-        refreshData() {
-            window.location.reload();
-        },
-        
-        exportHistory() {
-            // Implement export functionality
-            window.Alpine.store('messages').add('Export feature in development', 'info');
-        },
+
         
         formatFileSize(bytes) {
             if (!bytes) return '未知';
@@ -695,12 +506,26 @@ function reDetectFrame(frameId, detectionType) {
     })
     .then(response => response.json())
     .then(data => {
+        // Debug logging
+        console.log('Re-detection response:', data);
+        console.log('data.success:', data.success);
+        console.log('data.data:', data.data);
+        console.log('data.data.detection_count:', data.data?.detection_count);
+        
         if (data.success) {
-            // Show success message
-            alert(`Re-detection completed! Found ${data.detection_count} objects.`);
+            // Show success message with safe property access
+            const detectionCount = data.data?.detection_count || 0;
+            alert(`Re-detection completed! Found ${detectionCount} objects.`);
             
-            // Update the detection results section instead of reloading the page
-            updateDetectionResults(frameId, data);
+            // Directly update the detection results section with raw JSON data
+            const detectionResultsSection = document.querySelector(`#detection-results-${frameId}`);
+            if (detectionResultsSection) {
+                detectionResultsSection.innerHTML = `
+                    <div class="bg-gray-50 p-3 rounded text-xs max-h-64 overflow-auto">
+                        <pre class="whitespace-pre-wrap font-mono">${JSON.stringify(data.data, null, 2)}</pre>
+                    </div>
+                `;
+            }
         } else {
             alert(`Re-detection failed: ${data.error}`);
         }
@@ -718,47 +543,7 @@ function reDetectFrame(frameId, detectionType) {
     });
 }
 
-// Update detection results section after re-detection
-function updateDetectionResults(frameId, data) {
-    // Find the detection results section for this frame
-    const detectionResultsSection = document.querySelector(`#detection-results-${frameId}`);
-    
-    if (detectionResultsSection) {
-        // Clear current content
-        detectionResultsSection.innerHTML = '';
-        
-        // Add new content based on detection results
-        if (data.detections && data.detections.length > 0) {
-            // Create container for detections
-            const detectionsContainer = document.createElement('div');
-            detectionsContainer.className = 'space-y-2';
-            
-            data.detections.forEach((detection, index) => {
-                const detectionDiv = document.createElement('div');
-                detectionDiv.className = 'bg-blue-50 p-2 rounded';
-                detectionDiv.innerHTML = `
-                    <div class="text-xs font-medium text-blue-800">
-                        Detection ${index + 1}
-                    </div>
-                    <div class="text-xs mt-1 p-2 bg-white rounded">
-                        <div>Class: ${detection.class}</div>
-                        <div>Confidence: ${parseFloat(detection.confidence).toFixed(3)}</div>
-                        <div>BBox: [${detection.bbox.join(', ')}]</div>
-                        ${detection.data ? Object.keys(detection.data).map(key => 
-                            `<div>${key.charAt(0).toUpperCase() + key.slice(1)}: ${detection.data[key]}</div>`
-                        ).join('') : ''}
-                    </div>
-                `;
-                detectionsContainer.appendChild(detectionDiv);
-            });
-            
-            detectionResultsSection.appendChild(detectionsContainer);
-        } else {
-            // No detections found
-            detectionResultsSection.innerHTML = '<div class="text-gray-500 text-sm">No objects detected</div>';
-        }
-    }
-}
+
 
 // Make functions globally available
 window.closeModal = closeModal;

@@ -344,35 +344,49 @@ class CameraDetection {
     }
 
     /**
-     * Capture snapshot with current detections
+     * Capture current frame and send for detection
      */
     async captureSnapshot() {
-        if (!this.cameraActive) {
-            this.showMessage('Camera is not active', 'warning');
-            return;
-        }
-        
         try {
-            // Update status
-            this.updateStatus('Capturing snapshot...');
-            console.log('async captureSnapshot() in js');
-            // Perform detection with specific options for snapshot
-            const result = await this.performDetection({
-                updateCanvas: false, // Don't update canvas with detection boxes yet
-                updateStatus: false, // We'll handle status updates manually
-                imageFormat: 'image/png', // Use PNG for better quality
-                imageQuality: 1.0 // Highest quality for snapshot
-            });
-            
-            if (!result) {
-                throw new Error('Failed to perform detection for snapshot');
+            if (!this.videoElement || !this.canvasElement) {
+                throw new Error('Video or canvas element not available');
             }
             
-            const { frameData, detections, detectionType, threshold, timestamp } = result;
+            // Ensure video is playing
+            if (this.videoElement.readyState < 2) { // HAVE_CURRENT_DATA
+                throw new Error('Video not ready');
+            }
             
+            // Draw current video frame to canvas
+            const ctx = this.canvasElement.getContext('2d');
+            ctx.drawImage(this.videoElement, 0, 0, this.canvasElement.width, this.canvasElement.height);
+            
+            // Get image data as base64
+            const frameData = this.canvasElement.toDataURL('image/jpeg', 0.8);
+            
+            // Perform detection on current frame
+            const detectionResult = await this.performDetection(); // Call without parameters
+            
+            // Extract detections from result
+            const detections = detectionResult ? detectionResult.detections : [];
+            
+            // Get current detection settings
+            const detectionType = this.detectionType;
+            const threshold = this.detectionThreshold;
+            const timestamp = new Date().toLocaleString(); // Use local time string
+            
+            // Create result object
+            const result = {
+                frameData,
+                detections,
+                detectionType,
+                threshold,
+                timestamp
+            };
+            
+            console.log('Captured snapshot with detections:');
             
             // Draw detection results to canvas for the annotated image
-            const ctx = this.canvasElement.getContext('2d');
             this.drawDetections(ctx, detections);
             
             // Get the annotated frame (with detection boxes)
@@ -384,7 +398,7 @@ class CameraDetection {
                 detections: [...detections], // Copy of detections array
                 detection_type: detectionType,
                 threshold: threshold,
-                time: timestamp
+                time: Date.now() / 1000 // Unix timestamp in seconds
             };
             
             // Save snapshot to API with CSRF token

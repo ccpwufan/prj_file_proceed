@@ -7,6 +7,12 @@ from typing import List, Dict, Any, Optional
 import numpy as np
 from django.conf import settings
 from ..models import VideoAnalysis, VideoDetectionFrame
+from django.utils import timezone
+import cv2
+from django.core.files.base import ContentFile
+import os
+from django.contrib.auth.models import User
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -52,18 +58,24 @@ class DetectionService:
         Returns:
             Dict containing detection results
         """
-        import numpy as np
         from ..detectors import MultiTypeDetector
         
         try:
+            logger.debug(f"[BARCODE_DETECT] Starting detect_objects - detection_types: {detection_types}, threshold: {threshold}")
+            
             # Initialize multi-detector
             detector_manager = MultiTypeDetector()
             
+            logger.debug(f"[BARCODE_DETECT] Initialized MultiTypeDetector with {len(detector_manager.detectors)} detectors: {list(detector_manager.detectors.keys())}")
+            
             # Apply threshold to configuration if provided
-            if threshold:
-                detector_manager.update_thresholds({detection_types[0]: threshold} if detection_types else {})
+            if threshold and detection_types:
+                threshold_config = {detection_types[0]: threshold}
+                detector_manager.update_thresholds(threshold_config)
+                logger.debug(f"[BARCODE_DETECT] Updated detector thresholds: {threshold_config}")
             
             # Run detection
+            logger.debug(f"[BARCODE_DETECT] Running detection with enabled_types: {detection_types}")
             results = detector_manager.detect_all(frame, enabled_types=detection_types)
             
             # Extract results for the requested detection types
@@ -71,10 +83,13 @@ class DetectionService:
             if detection_types:
                 for det_type in detection_types:
                     if det_type in detector_manager.detectors:
+                        logger.debug(f"[BARCODE_DETECT] Calling detector '{det_type}' on frame with shape: {frame.shape}")
                         # Get detections from this detector
                         det_results = detector_manager.detectors[det_type].detect(frame)
+                        logger.debug(f"[BARCODE_DETECT] Detector '{det_type}' returned {len(det_results)} results")
                         formatted_results[det_type] = det_results
                     else:
+                        logger.debug(f"[BARCODE_DETECT] Detector '{det_type}' not available, returning empty list")
                         formatted_results[det_type] = []
             
             return {
@@ -158,7 +173,8 @@ class DetectionService:
     
     def _save_detection_frame(self, analysis: VideoAnalysis, frame_number: int, 
                              frame_data: bytes, timestamp: float, 
-                             detections: List[Dict], processing_time: float) -> VideoDetectionFrame:
+                             detections: List[Dict], processing_time: float,
+                             detection_type: str = None, threshold: float = None) -> VideoDetectionFrame:
         """
         Save or update detection frame to database
         
@@ -169,13 +185,13 @@ class DetectionService:
             timestamp: Timestamp in seconds
             detections: List of detection results
             processing_time: Processing time in milliseconds
+            detection_type: Detection type override (for re-detection)
+            threshold: Detection threshold override (for re-detection)
         
         Returns:
             VideoDetectionFrame instance
         """
-        from django.core.files.base import ContentFile
-        from django.utils import timezone
-        import os
+
         
         # Try to get existing frame record first
         try:
@@ -186,11 +202,15 @@ class DetectionService:
             # Update existing record
             detection_frame.timestamp = timestamp
             detection_frame.processing_time = processing_time
-            # 使用与CameraService.re_detect相同的结构
+            # Use provided override parameters or fall back to analysis values
+            actual_detection_type = detection_type or analysis.detection_type or 'barcode'
+            actual_threshold = threshold if threshold is not None else analysis.detection_threshold or 0.5
+            
+            # Use the same structure as CameraService.re_detect
             detection_frame.detection_data = {
                 'detections': detections,
-                'detection_type': analysis.detection_type or 'barcode',
-                'threshold': analysis.detection_threshold or 0.5,
+                'detection_type': actual_detection_type,
+                'threshold': actual_threshold,
                 'time': timestamp,
                 're_detected': True if getattr(analysis, '_is_re_detect', False) else False,
                 're_detection_timestamp': timezone.now().isoformat() if getattr(analysis, '_is_re_detect', False) else None
@@ -207,8 +227,8 @@ class DetectionService:
                 processing_time=processing_time,
                 detection_data={
                     'detections': detections,
-                    'detection_type': analysis.detection_type or 'barcode',
-                    'threshold': analysis.detection_threshold or 0.5,
+                    'detection_type': detection_type or analysis.detection_type or 'barcode',
+                    'threshold': threshold if threshold is not None else analysis.detection_threshold or 0.5,
                     'time': timestamp
                 }
             )
@@ -223,61 +243,205 @@ class DetectionService:
         """Get list of available detector types"""
         return list(self.detectors.keys())
     
-    def get_detector_info(self, detector_type: str) -> Optional[Dict[str, Any]]:
-        """Get information about a specific detector"""
-        if detector_type not in self.detectors:
-            return None
-        
-        detector = self.detectors[detector_type]
-        return {
-            'type': detector_type,
-            'name': getattr(detector, 'name', detector_type.capitalize()),
-            'description': getattr(detector, 'description', f"{detector_type} detector"),
-            'version': getattr(detector, 'version', '1.0.0'),
-            'supported_formats': getattr(detector, 'supported_formats', []),
-            'capabilities': getattr(detector, 'capabilities', {})
-        }
-    
-    def batch_process_frames(self, frames_data: List[Dict], analysis: VideoAnalysis,
-                           enabled_detectors: List[str] = None) -> List[Dict[str, Any]]:
+    def get_detection_history(self, user=None, limit: int = 10, detection_type: str = None, 
+                             start_date=None, end_date=None) -> List[Dict[str, Any]]:
         """
-        Process multiple frames in batch
+        Get detection history with filtering options
         
         Args:
-            frames_data: List of frame data dictionaries
-            analysis: VideoAnalysis instance
-            enabled_detectors: List of detector types to use
+            user: User instance to filter by (None for all users)
+            limit: Maximum number of records to return
+            detection_type: Filter by detection type (barcode, phone, etc.)
+            start_date: Filter by start date (datetime or string)
+            end_date: Filter by end date (datetime or string)
         
         Returns:
-            List of processing results for each frame
+            List of dictionaries containing detection history
         """
-        results = []
-        
-        logger.info(f"Starting batch processing of {len(frames_data)} frames")
-        
-        for i, frame_data in enumerate(frames_data):
-            try:
-                result = self.process_frame(
-                    frame_data=frame_data['data'],
-                    analysis=analysis,
-                    frame_number=frame_data['frame_number'],
-                    timestamp=frame_data['timestamp'],
-                    enabled_detectors=enabled_detectors
-                )
-                results.append(result)
+        try:
+
+            
+            # Start with all camera analyses
+            analyses = VideoAnalysis.objects.filter(
+                video_file__isnull=True  # Camera analysis only
+            )
+            
+            # Apply filters
+            if user:
+                analyses = analyses.filter(user=user)
+            
+            if detection_type:
+                analyses = analyses.filter(detection_type=detection_type)
+            
+            if start_date:
+                if isinstance(start_date, str):
+                    start_date = datetime.fromisoformat(start_date.replace('Z', '+00:00'))
+                analyses = analyses.filter(created_at__gte=start_date)
+            
+            if end_date:
+                if isinstance(end_date, str):
+                    end_date = datetime.fromisoformat(end_date.replace('Z', '+00:00'))
+                analyses = analyses.filter(created_at__lte=end_date)
+            
+            # Order by creation date and limit results
+            analyses = analyses.order_by('-created_at')[:limit]
+            
+            history = []
+            for analysis in analyses:
+                # Get recent frames for this analysis
+                recent_frames = analysis.detection_frames.order_by('-frame_number')[:5]
                 
-                # Log progress every 10 frames
-                if (i + 1) % 10 == 0:
-                    logger.info(f"Processed {i + 1}/{len(frames_data)} frames")
-                    
-            except Exception as e:
-                logger.error(f"Error processing frame {frame_data.get('frame_number', i)}: {e}")
-                results.append({
-                    'error': str(e),
-                    'frame_number': frame_data.get('frame_number', i)
+                # Calculate session duration if completed
+                session_duration = None
+                if analysis.status == 'completed' and isinstance(analysis.result_summary, dict):
+                    session_start = analysis.result_summary.get('session_start')
+                    session_end = analysis.result_summary.get('session_end')
+                    if session_start and session_end:
+                        try:
+                            start = datetime.fromisoformat(session_start.replace('Z', '+00:00'))
+                            end = datetime.fromisoformat(session_end.replace('Z', '+00:00'))
+                            session_duration = (end - start).total_seconds()
+                        except (ValueError, AttributeError):
+                            pass
+                
+                # Detection type(s)
+                detection_types = ['barcode']
+                if isinstance(analysis.result_summary, dict):
+                    detection_types = analysis.result_summary.get('detection_types', ['barcode'])
+                
+                history.append({
+                    'analysis_id': analysis.id,
+                    'user': analysis.user.username if analysis.user else 'Unknown',
+                    'title': analysis.result_summary.get('title', '') if isinstance(analysis.result_summary, dict) else '',
+                    'status': analysis.status,
+                    'detection_type': analysis.detection_type or 'barcode',
+                    'detection_types': detection_types,
+                    'total_frames': analysis.total_frames_processed,
+                    'total_detections': analysis.total_detections,
+                    'detection_threshold': analysis.detection_threshold,
+                    'created_at': analysis.created_at.isoformat(),
+                    'updated_at': analysis.updated_at.isoformat(),
+                    'session_duration_seconds': session_duration,
+                    'recent_frames_count': len(recent_frames),
+                    'average_detections_per_frame': (
+                        analysis.total_detections / analysis.total_frames_processed 
+                        if analysis.total_frames_processed > 0 else 0
+                    ),
+                    'has_frames': len(recent_frames) > 0,
+                    'recent_frame_sample': {
+                        'frame_number': recent_frames[0].frame_number,
+                        'detection_count': len(recent_frames[0].detection_data.get('detections', [])),
+                        'frame_image_url': recent_frames[0].frame_image.url if recent_frames[0].frame_image else None
+                    } if recent_frames else None
                 })
+            
+            logger.info(f"Retrieved {len(history)} detection history records")
+            return history
+            
+        except Exception as e:
+            logger.error(f"Error getting detection history: {e}")
+            return []
+    
+    def re_detect(self, frame_id: int, detection_type: str = None, threshold: float = None) -> Optional[Dict[str, Any]]:
+        """
+        Re-detect a specific detection frame using updated detection parameters
         
-        logger.info(f"Completed batch processing: {len([r for r in results if 'error' not in r])} successful, "
-                   f"{len([r for r in results if 'error' in r])} failed")
-        
-        return results
+        Args:
+            frame_id: VideoDetectionFrame ID to re-detect
+            detection_type: Optional detection type override
+            threshold: Optional detection threshold override
+            
+        Returns:
+            Dict with updated detection results or None if failed
+        """
+        try:
+            logger.debug(f"[BARCODE_DETECT] Starting re-detection for frame_id: {frame_id}")
+            
+            # Get the detection frame
+            frame = VideoDetectionFrame.objects.get(id=frame_id)
+            analysis = frame.video_analysis
+            
+            logger.debug(f"[BARCODE_DETECT] Retrieved frame - frame_number: {frame.frame_number}, analysis_id: {analysis.id}")
+            
+            # Mark this as a re-detection operation
+            analysis._is_re_detect = True
+            
+            # Check if frame has an image
+            if not frame.frame_image:
+                logger.debug(f"[BARCODE_DETECT] Frame {frame_id} has no image for re-detection")
+                return None
+            
+            # Use provided parameters or fall back to original ones
+            actual_detection_type = detection_type or analysis.detection_type or 'barcode'
+            actual_threshold = threshold if threshold is not None else analysis.detection_threshold or 0.5
+            
+            logger.debug(f"[BARCODE_DETECT] Using detection parameters - type: {actual_detection_type}, threshold: {actual_threshold}")
+            
+            # Read and convert image to numpy array for detect_objects
+            image_path = frame.frame_image.path
+            logger.debug(f"[BARCODE_DETECT] Reading image from path: {image_path}")
+            
+            image_array = cv2.imread(image_path)
+            if image_array is None:
+                logger.debug(f"[BARCODE_DETECT] Failed to read image {image_path} for re-detection")
+                return None
+            
+            logger.debug(f"[BARCODE_DETECT] Successfully loaded image - shape: {image_array.shape}, dtype: {image_array.dtype}")
+            
+            # Perform re-detection using detect_objects with proper threshold
+            # Note: detect_objects internally handles threshold application via update_thresholds
+            logger.debug(f"[BARCODE_DETECT] Calling detect_objects - detection_types: [{actual_detection_type}], threshold: {actual_threshold}")
+            
+            result = self.detect_objects(
+                frame=image_array,
+                detection_types=[actual_detection_type],
+                threshold=actual_threshold
+            )
+            
+            if 'error' in result:
+                logger.error(f"Detection service error for frame {frame_id}: {result['error']}")
+                return None
+            
+            # Extract detections from the result
+            new_detections = result.get('detections', {}).get(actual_detection_type, [])
+            
+            # Add detection type to each detection for consistency
+            for detection in new_detections:
+                detection['detection_type'] = actual_detection_type
+            
+            # Update the detection frame with new results and correct parameters
+            detection_frame = self._save_detection_frame(
+                analysis=analysis,
+                frame_number=frame.frame_number,
+                frame_data=cv2.imencode('.jpg', image_array)[1].tobytes(),
+                timestamp=frame.timestamp,
+                detections=new_detections,
+                processing_time=result.get('processing_time', 0) * 1000,  # Convert to milliseconds
+                detection_type=actual_detection_type,
+                threshold=actual_threshold
+            )
+            
+            logger.debug(f"[BARCODE_DETECT] Re-detection completed for frame {frame_id} using {actual_detection_type} (threshold={actual_threshold}), found {len(new_detections)} detections")
+            
+            return_result = {
+                'frame_id': frame_id,
+                'detection_count': len(new_detections),
+                'detections': new_detections,
+                'processing_time': detection_frame.processing_time,
+                'detection_type': actual_detection_type,
+                'threshold': actual_threshold,
+                're_detection_timestamp': timezone.localtime().isoformat()
+            }
+            
+            logger.debug(f"[BARCODE_DETECT] Returning re-detection result - detection_count: {return_result['detection_count']}, processing_time: {return_result['processing_time']:.2f}ms")
+            return return_result
+            
+        except VideoDetectionFrame.DoesNotExist:
+            logger.error(f"Frame {frame_id} not found")
+            return None
+        except Exception as e:
+            logger.error(f"Error in re_detect for frame {frame_id}: {e}")
+            return None
+    
+
+    

@@ -235,7 +235,7 @@ def capture_snapshot(request):
         # Create or get camera analysis session
         analysis = camera_service.create_camera_analysis(
                     user=request.user,
-                    title=f"Camera Detection Session {timezone.now().strftime('%Y-%m-%d %H:%M')}",
+                    title=f"Camera Detection Session {timezone.localtime().strftime('%Y-%m-%d %H:%M')}",
                     detection_types=[detection_data.get('detection_type', 'barcode')],
                     status='completed'
                 )
@@ -281,8 +281,23 @@ def capture_snapshot(request):
 def get_detection_history(request):
     """Get camera detection history"""
     try:
-        camera_service = CameraService()
-        detection_history = camera_service.get_detection_history()
+        from .services.detection_service import DetectionService
+        
+        detection_service = DetectionService()
+        # Get current user and optional query parameters
+        user = request.user
+        limit = int(request.GET.get('limit', 10))
+        detection_type = request.GET.get('detection_type', None)
+        start_date = request.GET.get('start_date', None)
+        end_date = request.GET.get('end_date', None)
+        
+        detection_history = detection_service.get_detection_history(
+            user=user,
+            limit=limit,
+            detection_type=detection_type,
+            start_date=start_date,
+            end_date=end_date
+        )
         
         return JsonResponse({
             'success': True,
@@ -304,29 +319,47 @@ def get_detection_history(request):
 @require_POST
 def re_detect(request):
     """
-    Re-detect specified video frame
-    Expected JSON payload: {"frame_id": 123}
+    Re-detect specified video frame with updated parameters
+    Expected JSON payload: {"frame_id": 123, "detection_type": "barcode", "threshold": 0.7}
     """
     try:
-        camera_service = CameraService()
+        from .services.detection_service import DetectionService
+        
+        logger.debug(f"[BARCODE_DETECT] Starting re-detect request")
+        
+        detection_service = DetectionService()
         data = json.loads(request.body)
         
         frame_id = data.get('frame_id')
+        detection_type = data.get('detection_type')
+        threshold = data.get('threshold')
+        
+        logger.debug(f"[BARCODE_DETECT] Request parameters - frame_id: {frame_id}, detection_type: {detection_type}, threshold: {threshold}")
+        
         if not frame_id:
             return JsonResponse({
                 'success': False,
                 'message': 'frame_id is required'
             }, status=400)
         
-        re_detection_result = camera_service.re_detect(frame_id)
+        # Pass detection_type and threshold parameters to re_detect method
+        re_detection_result = detection_service.re_detect(
+            frame_id=frame_id,
+            detection_type=detection_type,
+            threshold=threshold
+        )
         
         if re_detection_result:
+            detection_count = re_detection_result.get('detection_count', 0)
+            logger.debug(f"[BARCODE_DETECT] Re-detection successful - returning {detection_count} detections")
             return JsonResponse({
                 'success': True,
                 'message': 'Re-detection completed successfully',
-                'data': re_detection_result
+                'data': re_detection_result,
+                'timestamp': timezone.localtime().isoformat()
             })
         else:
+            logger.debug(f"[BARCODE_DETECT] Re-detection failed - service returned None")
             return JsonResponse({
                 'success': False,
                 'message': 'Re-detection failed'
