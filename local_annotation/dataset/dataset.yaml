@@ -1,0 +1,10 @@
+path: /app/barcode_dataset
+train: images/train
+val: images/val
+test: images/test
+
+nc: 3
+names:
+  0: barcode
+  1: datamatrix
+  2: qrcode
