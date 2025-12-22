@@ -1,0 +1,51 @@
+{
+  "test_summary": {
+    "total_images_tested": 1,
+    "output_directory": "visual_test_output"
+  },
+  "detailed_results": [
+    {
+      "image_path": "media\\detection_frames\\snapshot_72_1766034789.jpg",
+      "image_quality": {
+        "resolution": 921600,
+        "width": 1280,
+        "height": 720,
+        "blur_score": 192.27563978112775,
+        "contrast": 52.531658948594746,
+        "brightness": 132.09429904513888,
+        "edge_density": 0.032549913194444446
+      },
+      "yolo_inference_time_ms": 449.3088722229004,
+      "detections": [
+        {
+          "detection_id": 1,
+          "class_name": "barcode",
+          "confidence": 0.5323950052261353,
+          "bbox": [
+            154.49954223632812,
+            322.608642578125,
+            484.2608337402344,
+            437.62506103515625
+          ],
+          "region_size": [
+            330,
+            115
+          ],
+          "decode_result": {
+            "success": false,
+            "error": "DATAMATRIX",
+            "results": [],
+            "count": 0
+          },
+          "decode_time_ms": 0
+        }
+      ],
+      "full_image_decode": {
+        "success": false,
+        "error": "DATAMATRIX",
+        "results": [],
+        "count": 0
+      }
+    }
+  ]
+}

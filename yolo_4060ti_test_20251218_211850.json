@@ -1,0 +1,261 @@
+{
+  "test_info": {
+    "model_path": "barcode_training/barcode_detector_4060ti/weights/best.pt",
+    "test_time": "2025-12-18T21:18:50.817503",
+    "total_images": 10
+  },
+  "analysis": {
+    "total_images_tested": 10,
+    "total_detections": 7,
+    "avg_detections_per_image": 0.7,
+    "avg_inference_time_ms": 76.28641128540039,
+    "avg_fps": 13.108494463828302,
+    "class_distribution": {
+      "barcode": 7
+    },
+    "avg_confidence": 0.8334300943783352,
+    "min_confidence": 0.5891324877738953,
+    "max_confidence": 0.9901903867721558
+  },
+  "detailed_results": [
+    {
+      "image_path": "media/detection_frames\\snapshot_78_1766034930.jpg",
+      "image_size": [
+        1280,
+        720
+      ],
+      "detections": [
+        {
+          "class": "barcode",
+          "class_id": 0,
+          "confidence": 0.9901903867721558,
+          "bbox": [
+            627.9987182617188,
+            267.535888671875,
+            1021.4070434570312,
+            460.96417236328125
+          ],
+          "center": [
+            824.702880859375,
+            364.2500305175781
+          ],
+          "area": 76096.296875
+        }
+      ],
+      "detection_count": 1,
+      "inference_time_ms": 511.5969181060791,
+      "fps": 1.9546638468855104,
+      "success": true
+    },
+    {
+      "image_path": "media/detection_frames\\snapshot_82_1766048499.jpg",
+      "image_size": [
+        1280,
+        720
+      ],
+      "detections": [
+        {
+          "class": "barcode",
+          "class_id": 0,
+          "confidence": 0.9224263429641724,
+          "bbox": [
+            415.26806640625,
+            138.26513671875,
+            783.6510009765625,
+            317.22442626953125
+          ],
+          "center": [
+            599.4595336914062,
+            227.74478149414062
+          ],
+          "area": 65925.546875
+        }
+      ],
+      "detection_count": 1,
+      "inference_time_ms": 25.56157112121582,
+      "fps": 39.12122597073116,
+      "success": true
+    },
+    {
+      "image_path": "barcode_dataset/images/test\\snapshot_77_1766034912.jpg",
+      "image_size": [
+        1280,
+        720
+      ],
+      "detections": [
+        {
+          "class": "barcode",
+          "class_id": 0,
+          "confidence": 0.7339774966239929,
+          "bbox": [
+            165.6661376953125,
+            422.24591064453125,
+            463.4024658203125,
+            537.7119750976562
+          ],
+          "center": [
+            314.5343017578125,
+            479.97894287109375
+          ],
+          "area": 34378.44140625
+        }
+      ],
+      "detection_count": 1,
+      "inference_time_ms": 22.53246307373047,
+      "fps": 44.38041224023363,
+      "success": true
+    },
+    {
+      "image_path": "media/detection_frames\\frame_58_000001.jpg",
+      "image_size": [
+        1280,
+        720
+      ],
+      "detections": [
+        {
+          "class": "barcode",
+          "class_id": 0,
+          "confidence": 0.9230453968048096,
+          "bbox": [
+            191.6283721923828,
+            122.3409423828125,
+            450.09478759765625,
+            285.47039794921875
+          ],
+          "center": [
+            320.86157989501953,
+            203.90567016601562
+          ],
+          "area": 42163.48828125
+        }
+      ],
+      "detection_count": 1,
+      "inference_time_ms": 43.717145919799805,
+      "fps": 22.874320337254517,
+      "success": true
+    },
+    {
+      "image_path": "media/detection_frames\\snapshot_60_1765896944.jpg",
+      "image_size": [
+        1280,
+        720
+      ],
+      "detections": [],
+      "detection_count": 0,
+      "inference_time_ms": 42.3893928527832,
+      "fps": 23.59080733883033,
+      "success": true
+    },
+    {
+      "image_path": "media/detection_frames\\snapshot_86_1766049060.jpg",
+      "image_size": [
+        1280,
+        720
+      ],
+      "detections": [],
+      "detection_count": 0,
+      "inference_time_ms": 23.65422248840332,
+      "fps": 42.275750153709694,
+      "success": true
+    },
+    {
+      "image_path": "media/detection_frames\\snapshot_77_1766034912.jpg",
+      "image_size": [
+        1280,
+        720
+      ],
+      "detections": [
+        {
+          "class": "barcode",
+          "class_id": 0,
+          "confidence": 0.7339774966239929,
+          "bbox": [
+            165.6661376953125,
+            422.24591064453125,
+            463.4024658203125,
+            537.7119750976562
+          ],
+          "center": [
+            314.5343017578125,
+            479.97894287109375
+          ],
+          "area": 34378.44140625
+        }
+      ],
+      "detection_count": 1,
+      "inference_time_ms": 28.05328369140625,
+      "fps": 35.646450911068804,
+      "success": true
+    },
+    {
+      "image_path": "media/detection_frames\\snapshot_81_1766035055.jpg",
+      "image_size": [
+        1280,
+        720
+      ],
+      "detections": [],
+      "detection_count": 0,
+      "inference_time_ms": 21.40355110168457,
+      "fps": 46.721219074777494,
+      "success": true
+    },
+    {
+      "image_path": "media/detection_frames\\snapshot_83_1766048672.jpg",
+      "image_size": [
+        1280,
+        720
+      ],
+      "detections": [
+        {
+          "class": "barcode",
+          "class_id": 0,
+          "confidence": 0.9412610530853271,
+          "bbox": [
+            442.86700439453125,
+            356.09320068359375,
+            895.5988159179688,
+            534.0216674804688
+          ],
+          "center": [
+            669.23291015625,
+            445.05743408203125
+          ],
+          "area": 80553.875
+        }
+      ],
+      "detection_count": 1,
+      "inference_time_ms": 19.089221954345703,
+      "fps": 52.38558189493668,
+      "success": true
+    },
+    {
+      "image_path": "media/detection_frames\\snapshot_85_1766049060.jpg",
+      "image_size": [
+        1280,
+        720
+      ],
+      "detections": [
+        {
+          "class": "barcode",
+          "class_id": 0,
+          "confidence": 0.5891324877738953,
+          "bbox": [
+            469.45794677734375,
+            175.04931640625,
+            770.8764038085938,
+            309.19500732421875
+          ],
+          "center": [
+            620.1671752929688,
+            242.12216186523438
+          ],
+          "area": 40433.98828125
+        }
+      ],
+      "detection_count": 1,
+      "inference_time_ms": 24.866342544555664,
+      "fps": 40.215001390260504,
+      "success": true
+    }
+  ]
+}

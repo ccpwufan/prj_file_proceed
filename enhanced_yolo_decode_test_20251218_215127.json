@@ -1,0 +1,166 @@
+{
+  "test_summary": {
+    "total_images_tested": 5,
+    "total_yolo_detections": 7,
+    "total_successful_decodes": 0,
+    "decode_success_rate_percent": 0.0,
+    "avg_yolo_inference_time_ms": 108.05778503417969,
+    "avg_decode_time_ms": 53.29723358154297,
+    "avg_total_time_ms": 161.35501861572266,
+    "total_test_time_seconds": 4.144454479217529,
+    "estimated_fps": 6.197514081551837
+  },
+  "detailed_results": [
+    {
+      "image_path": "barcode_dataset\\images\\val\\snapshot_58_1765878953.jpg",
+      "yolo_inference_time_ms": 461.3330364227295,
+      "total_decode_time_ms": 62.44659423828125,
+      "total_time_ms": 523.7796306610107,
+      "detections": [
+        {
+          "detection_id": 1,
+          "class_name": "barcode",
+          "confidence": 0.9230453968048096,
+          "bbox": [
+            181.0,
+            112.0,
+            460.0,
+            295.0
+          ],
+          "decoded_results": [],
+          "decode_time_ms": 62.44659423828125
+        }
+      ],
+      "detection_count": 1,
+      "successful_decodes": 0,
+      "full_image_decode_results": [],
+      "full_image_decode_time_ms": 746.5438842773438
+    },
+    {
+      "image_path": "barcode_dataset\\images\\test\\snapshot_72_1766034789.jpg",
+      "yolo_inference_time_ms": 10.92982292175293,
+      "total_decode_time_ms": 46.0813045501709,
+      "total_time_ms": 57.01112747192383,
+      "detections": [
+        {
+          "detection_id": 1,
+          "class_name": "barcode",
+          "confidence": 0.5323950052261353,
+          "bbox": [
+            144.0,
+            312.0,
+            494.0,
+            447.0
+          ],
+          "decoded_results": [],
+          "decode_time_ms": 46.0813045501709
+        }
+      ],
+      "detection_count": 1,
+      "successful_decodes": 0,
+      "full_image_decode_results": [],
+      "full_image_decode_time_ms": 713.6843204498291
+    },
+    {
+      "image_path": "barcode_dataset\\images\\test\\snapshot_76_1766034830.jpg",
+      "yolo_inference_time_ms": 19.336223602294922,
+      "total_decode_time_ms": 44.40188407897949,
+      "total_time_ms": 63.738107681274414,
+      "detections": [
+        {
+          "detection_id": 1,
+          "class_name": "barcode",
+          "confidence": 0.7143199443817139,
+          "bbox": [
+            315.0,
+            441.0,
+            645.0,
+            586.0
+          ],
+          "decoded_results": [],
+          "decode_time_ms": 44.40188407897949
+        }
+      ],
+      "detection_count": 1,
+      "successful_decodes": 0,
+      "full_image_decode_results": [],
+      "full_image_decode_time_ms": 732.4838638305664
+    },
+    {
+      "image_path": "barcode_dataset\\images\\test\\snapshot_77_1766034912.jpg",
+      "yolo_inference_time_ms": 11.49129867553711,
+      "total_decode_time_ms": 33.24580192565918,
+      "total_time_ms": 44.73710060119629,
+      "detections": [
+        {
+          "detection_id": 1,
+          "class_name": "barcode",
+          "confidence": 0.7339774966239929,
+          "bbox": [
+            155.0,
+            412.0,
+            473.0,
+            547.0
+          ],
+          "decoded_results": [],
+          "decode_time_ms": 33.24580192565918
+        }
+      ],
+      "detection_count": 1,
+      "successful_decodes": 0,
+      "full_image_decode_results": [],
+      "full_image_decode_time_ms": 736.6406917572021
+    },
+    {
+      "image_path": "media\\detection_frames\\complex_test_barcode.jpg",
+      "yolo_inference_time_ms": 37.198543548583984,
+      "total_decode_time_ms": 80.31058311462402,
+      "total_time_ms": 117.50912666320801,
+      "detections": [
+        {
+          "detection_id": 1,
+          "class_name": "barcode",
+          "confidence": 0.8896169066429138,
+          "bbox": [
+            49.0,
+            90.0,
+            303.0,
+            195.0
+          ],
+          "decoded_results": [],
+          "decode_time_ms": 26.84760093688965
+        },
+        {
+          "detection_id": 2,
+          "class_name": "barcode",
+          "confidence": 0.8316271305084229,
+          "bbox": [
+            393.0,
+            91.0,
+            652.0,
+            195.0
+          ],
+          "decoded_results": [],
+          "decode_time_ms": 29.397964477539062
+        },
+        {
+          "detection_id": 3,
+          "class_name": "barcode",
+          "confidence": 0.681998610496521,
+          "bbox": [
+            195.0,
+            339.0,
+            453.0,
+            457.0
+          ],
+          "decoded_results": [],
+          "decode_time_ms": 24.065017700195312
+        }
+      ],
+      "detection_count": 3,
+      "successful_decodes": 0,
+      "full_image_decode_results": [],
+      "full_image_decode_time_ms": 372.4794387817383
+    }
+  ]
+}

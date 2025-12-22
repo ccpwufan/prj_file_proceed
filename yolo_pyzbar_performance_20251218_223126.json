@@ -1,0 +1,364 @@
+{
+  "test_info": {
+    "timestamp": "2025-12-18T22:31:26.894678",
+    "model": "YOLO + pyzbar",
+    "images_tested": 5,
+    "pyzbar_available": true
+  },
+  "performance_summary": {
+    "total_detections": 8,
+    "successful_region_decodes": 5,
+    "successful_full_decodes": 2,
+    "region_decode_success_rate": 0.625,
+    "full_decode_success_rate": 0.4,
+    "timing": {
+      "avg_yolo_time_ms": 105.74264526367188,
+      "avg_decode_time_ms": 1.2628436088562012,
+      "avg_total_time_ms": 130.13014793395996
+    }
+  },
+  "detailed_results": [
+    {
+      "image_path": "barcode_dataset/images/val\\snapshot_58_1765878953.jpg",
+      "image_size": [
+        720,
+        1280
+      ],
+      "detections": [
+        {
+          "bbox": [
+            191.6283721923828,
+            122.3409423828125,
+            450.09478759765625,
+            285.47039794921875
+          ],
+          "class": "barcode",
+          "confidence": 0.9230453968048096,
+          "roi_size": [
+            258,
+            163
+          ],
+          "decoded_count": 0,
+          "decoded_data": [],
+          "decode_time_ms": 2.0003318786621094
+        }
+      ],
+      "yolo_time_ms": 460.74914932250977,
+      "total_time_ms": 484.74717140197754,
+      "full_direct_decode": {
+        "results": [],
+        "time_ms": 21.997690200805664
+      },
+      "successful_regions": 0
+    },
+    {
+      "image_path": "media/detection_frames\\complex_test_barcode.jpg",
+      "image_size": [
+        600,
+        800
+      ],
+      "detections": [
+        {
+          "bbox": [
+            59.1888427734375,
+            100.89804077148438,
+            293.92510986328125,
+            185.12741088867188
+          ],
+          "class": "barcode",
+          "confidence": 0.8896169066429138,
+          "roi_size": [
+            234,
+            84
+          ],
+          "decoded_count": 1,
+          "decoded_data": [
+            {
+              "type": "CODE128",
+              "data": "1234567890128",
+              "quality": 34,
+              "confidence": null,
+              "rect": {
+                "left": 15,
+                "top": 5,
+                "width": 199,
+                "height": 61
+              }
+            }
+          ],
+          "decode_time_ms": 1.0008811950683594
+        },
+        {
+          "bbox": [
+            403.01171875,
+            101.99588775634766,
+            642.9144897460938,
+            185.568115234375
+          ],
+          "class": "barcode",
+          "confidence": 0.8316271305084229,
+          "roi_size": [
+            239,
+            83
+          ],
+          "decoded_count": 1,
+          "decoded_data": [
+            {
+              "type": "CODE128",
+              "data": "9876543210987",
+              "quality": 62,
+              "confidence": null,
+              "rect": {
+                "left": 21,
+                "top": 3,
+                "width": 199,
+                "height": 61
+              }
+            }
+          ],
+          "decode_time_ms": 1.0008811950683594
+        },
+        {
+          "bbox": [
+            205.8199920654297,
+            349.5791015625,
+            443.10699462890625,
+            447.32354736328125
+          ],
+          "class": "barcode",
+          "confidence": 0.681998610496521,
+          "roi_size": [
+            237,
+            97
+          ],
+          "decoded_count": 1,
+          "decoded_data": [
+            {
+              "type": "CODE128",
+              "data": "5555666677778",
+              "quality": 62,
+              "confidence": null,
+              "rect": {
+                "left": 19,
+                "top": 6,
+                "width": 199,
+                "height": 62
+              }
+            }
+          ],
+          "decode_time_ms": 1.0008811950683594
+        }
+      ],
+      "yolo_time_ms": 36.99159622192383,
+      "total_time_ms": 56.99801445007324,
+      "full_direct_decode": {
+        "results": [
+          {
+            "type": "CODE128",
+            "data": "5555666677778",
+            "quality": 55,
+            "confidence": null,
+            "rect": {
+              "left": 224,
+              "top": 354,
+              "width": 199,
+              "height": 63
+            }
+          },
+          {
+            "type": "CODE128",
+            "data": "9876543210987",
+            "quality": 52,
+            "confidence": null,
+            "rect": {
+              "left": 424,
+              "top": 104,
+              "width": 199,
+              "height": 62
+            }
+          },
+          {
+            "type": "CODE128",
+            "data": "1234567890128",
+            "quality": 57,
+            "confidence": null,
+            "rect": {
+              "left": 74,
+              "top": 104,
+              "width": 199,
+              "height": 62
+            }
+          }
+        ],
+        "time_ms": 14.005661010742188
+      },
+      "successful_regions": 3
+    },
+    {
+      "image_path": "media/detection_frames\\frame_57_000001.jpg",
+      "image_size": [
+        720,
+        1280
+      ],
+      "detections": [],
+      "yolo_time_ms": 7.992744445800781,
+      "total_time_ms": 37.177324295043945,
+      "full_direct_decode": {
+        "results": [],
+        "time_ms": 27.184486389160156
+      },
+      "successful_regions": 0
+    },
+    {
+      "image_path": "media/detection_frames\\frame_58_000001.jpg",
+      "image_size": [
+        720,
+        1280
+      ],
+      "detections": [
+        {
+          "bbox": [
+            191.6283721923828,
+            122.3409423828125,
+            450.09478759765625,
+            285.47039794921875
+          ],
+          "class": "barcode",
+          "confidence": 0.9230453968048096,
+          "roi_size": [
+            258,
+            163
+          ],
+          "decoded_count": 0,
+          "decoded_data": [],
+          "decode_time_ms": 2.089977264404297
+        }
+      ],
+      "yolo_time_ms": 8.862018585205078,
+      "total_time_ms": 37.07456588745117,
+      "full_direct_decode": {
+        "results": [],
+        "time_ms": 26.122570037841797
+      },
+      "successful_regions": 0
+    },
+    {
+      "image_path": "visual_test_output\\visual_complex_test_barcode.jpg",
+      "image_size": [
+        600,
+        800
+      ],
+      "detections": [
+        {
+          "bbox": [
+            57.6765251159668,
+            100.37223815917969,
+            294.2189636230469,
+            186.5050048828125
+          ],
+          "class": "barcode",
+          "confidence": 0.8282083868980408,
+          "roi_size": [
+            236,
+            86
+          ],
+          "decoded_count": 0,
+          "decoded_data": [],
+          "decode_time_ms": 1.004934310913086
+        },
+        {
+          "bbox": [
+            403.2412109375,
+            101.78813934326172,
+            645.2029418945312,
+            185.35693359375
+          ],
+          "class": "barcode",
+          "confidence": 0.7478834390640259,
+          "roi_size": [
+            241,
+            83
+          ],
+          "decoded_count": 1,
+          "decoded_data": [
+            {
+              "type": "CODE128",
+              "data": "9876543210987",
+              "quality": 29,
+              "confidence": null,
+              "rect": {
+                "left": 220,
+                "top": 4,
+                "width": 0,
+                "height": 60
+              }
+            }
+          ],
+          "decode_time_ms": 0.9999275207519531
+        },
+        {
+          "bbox": [
+            201.13369750976562,
+            348.62054443359375,
+            443.5586242675781,
+            447.26751708984375
+          ],
+          "class": "barcode",
+          "confidence": 0.5524859428405762,
+          "roi_size": [
+            242,
+            98
+          ],
+          "decoded_count": 1,
+          "decoded_data": [
+            {
+              "type": "CODE128",
+              "data": "5555666677778",
+              "quality": 32,
+              "confidence": null,
+              "rect": {
+                "left": 222,
+                "top": 6,
+                "width": 0,
+                "height": 62
+              }
+            }
+          ],
+          "decode_time_ms": 1.004934310913086
+        }
+      ],
+      "yolo_time_ms": 14.117717742919922,
+      "total_time_ms": 34.653663635253906,
+      "full_direct_decode": {
+        "results": [
+          {
+            "type": "CODE128",
+            "data": "5555666677778",
+            "quality": 32,
+            "confidence": null,
+            "rect": {
+              "left": 423,
+              "top": 354,
+              "width": 0,
+              "height": 62
+            }
+          },
+          {
+            "type": "CODE128",
+            "data": "9876543210987",
+            "quality": 32,
+            "confidence": null,
+            "rect": {
+              "left": 623,
+              "top": 104,
+              "width": 0,
+              "height": 62
+            }
+          }
+        ],
+        "time_ms": 15.000343322753906
+      },
+      "successful_regions": 2
+    }
+  ]
+}

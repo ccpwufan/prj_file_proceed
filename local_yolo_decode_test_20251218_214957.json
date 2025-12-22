@@ -1,0 +1,726 @@
+{
+  "test_info": {
+    "model_path": "barcode_training/barcode_detector_4060ti/weights/best.pt",
+    "test_time": "2025-12-18T21:49:57.158237",
+    "working_directory": "D:\\Projects\\prj_file_proceed",
+    "total_images": 10,
+    "successful_images": 10,
+    "available_decoders": [
+      "pyzbar"
+    ]
+  },
+  "summary": {
+    "total_images_tested": 10,
+    "total_yolo_detections": 11,
+    "total_successful_decodes": 2,
+    "decode_success_rate": 0.18181818181818182,
+    "avg_total_time_ms": 207.2742223739624,
+    "avg_fps": 4.824526603196264
+  },
+  "detailed_results": [
+    {
+      "image_info": {
+        "path": "media/detection_frames\\snapshot_71_1765980946.jpg",
+        "size": [
+          1280,
+          720
+        ],
+        "channels": 3
+      },
+      "yolo_results": {
+        "detections": [
+          {
+            "id": 0,
+            "class": "barcode",
+            "class_id": 0,
+            "confidence": 0.911602795124054,
+            "bbox": [
+              203.7939453125,
+              355.82757568359375,
+              514.502197265625,
+              519.652587890625
+            ],
+            "center": [
+              359.1480712890625,
+              437.7400817871094
+            ],
+            "area": 50901.78125
+          }
+        ],
+        "count": 1,
+        "inference_time_ms": 446.8724727630615
+      },
+      "decode_results": {
+        "attempts": [
+          {
+            "detection_id": 0,
+            "yolo_class": "barcode",
+            "yolo_confidence": 0.911602795124054,
+            "roi_bbox": [
+              203.7939453125,
+              355.82757568359375,
+              514.502197265625,
+              519.652587890625
+            ],
+            "decoded_results": [],
+            "decode_success": false
+          }
+        ],
+        "successful_attempts": 0,
+        "decode_time_ms": 204.50448989868164
+      },
+      "full_image_decodes": {
+        "pyzbar": [],
+        "pyzxing": []
+      },
+      "performance": {
+        "total_time_ms": 651.3769626617432,
+        "fps": 1.5352093446990618
+      },
+      "success": true
+    },
+    {
+      "image_info": {
+        "path": "media/detection_frames\\snapshot_82_1766048499.jpg",
+        "size": [
+          1280,
+          720
+        ],
+        "channels": 3
+      },
+      "yolo_results": {
+        "detections": [
+          {
+            "id": 0,
+            "class": "barcode",
+            "class_id": 0,
+            "confidence": 0.9224263429641724,
+            "bbox": [
+              415.26806640625,
+              138.26513671875,
+              783.6510009765625,
+              317.22442626953125
+            ],
+            "center": [
+              599.4595336914062,
+              227.74478149414062
+            ],
+            "area": 65925.546875
+          }
+        ],
+        "count": 1,
+        "inference_time_ms": 8.227348327636719
+      },
+      "decode_results": {
+        "attempts": [
+          {
+            "detection_id": 0,
+            "yolo_class": "barcode",
+            "yolo_confidence": 0.9224263429641724,
+            "roi_bbox": [
+              415.26806640625,
+              138.26513671875,
+              783.6510009765625,
+              317.22442626953125
+            ],
+            "decoded_results": [],
+            "decode_success": false
+          }
+        ],
+        "successful_attempts": 0,
+        "decode_time_ms": 146.79574966430664
+      },
+      "full_image_decodes": {
+        "pyzbar": [],
+        "pyzxing": []
+      },
+      "performance": {
+        "total_time_ms": 156.01587295532227,
+        "fps": 6.409604234861196
+      },
+      "success": true
+    },
+    {
+      "image_info": {
+        "path": "media/detection_frames\\snapshot_76_1766034830.jpg",
+        "size": [
+          1280,
+          720
+        ],
+        "channels": 3
+      },
+      "yolo_results": {
+        "detections": [
+          {
+            "id": 0,
+            "class": "barcode",
+            "class_id": 0,
+            "confidence": 0.7143199443817139,
+            "bbox": [
+              325.90057373046875,
+              451.7822570800781,
+              635.0088500976562,
+              576.09765625
+            ],
+            "center": [
+              480.4547119140625,
+              513.9399566650391
+            ],
+            "area": 38426.91796875
+          }
+        ],
+        "count": 1,
+        "inference_time_ms": 11.139869689941406
+      },
+      "decode_results": {
+        "attempts": [
+          {
+            "detection_id": 0,
+            "yolo_class": "barcode",
+            "yolo_confidence": 0.7143199443817139,
+            "roi_bbox": [
+              325.90057373046875,
+              451.7822570800781,
+              635.0088500976562,
+              576.09765625
+            ],
+            "decoded_results": [],
+            "decode_success": false
+          }
+        ],
+        "successful_attempts": 0,
+        "decode_time_ms": 90.86275100708008
+      },
+      "full_image_decodes": {
+        "pyzbar": [],
+        "pyzxing": []
+      },
+      "performance": {
+        "total_time_ms": 102.00262069702148,
+        "fps": 9.80366968188299
+      },
+      "success": true
+    },
+    {
+      "image_info": {
+        "path": "media/detection_frames\\snapshot_83_1766048672.jpg",
+        "size": [
+          1280,
+          720
+        ],
+        "channels": 3
+      },
+      "yolo_results": {
+        "detections": [
+          {
+            "id": 0,
+            "class": "barcode",
+            "class_id": 0,
+            "confidence": 0.9412610530853271,
+            "bbox": [
+              442.86700439453125,
+              356.09320068359375,
+              895.5988159179688,
+              534.0216674804688
+            ],
+            "center": [
+              669.23291015625,
+              445.05743408203125
+            ],
+            "area": 80553.875
+          }
+        ],
+        "count": 1,
+        "inference_time_ms": 23.050785064697266
+      },
+      "decode_results": {
+        "attempts": [
+          {
+            "detection_id": 0,
+            "yolo_class": "barcode",
+            "yolo_confidence": 0.9412610530853271,
+            "roi_bbox": [
+              442.86700439453125,
+              356.09320068359375,
+              895.5988159179688,
+              534.0216674804688
+            ],
+            "decoded_results": [],
+            "decode_success": false
+          }
+        ],
+        "successful_attempts": 0,
+        "decode_time_ms": 163.67554664611816
+      },
+      "full_image_decodes": {
+        "pyzbar": [],
+        "pyzxing": []
+      },
+      "performance": {
+        "total_time_ms": 186.72633171081543,
+        "fps": 5.3554310784014545
+      },
+      "success": true
+    },
+    {
+      "image_info": {
+        "path": "media/detection_frames\\snapshot_79_1766034961.jpg",
+        "size": [
+          1280,
+          720
+        ],
+        "channels": 3
+      },
+      "yolo_results": {
+        "detections": [
+          {
+            "id": 0,
+            "class": "barcode",
+            "class_id": 0,
+            "confidence": 0.6492268443107605,
+            "bbox": [
+              224.50210571289062,
+              289.8414306640625,
+              456.8842468261719,
+              512.044189453125
+            ],
+            "center": [
+              340.69317626953125,
+              400.94281005859375
+            ],
+            "area": 51635.953125
+          }
+        ],
+        "count": 1,
+        "inference_time_ms": 23.542165756225586
+      },
+      "decode_results": {
+        "attempts": [
+          {
+            "detection_id": 0,
+            "yolo_class": "barcode",
+            "yolo_confidence": 0.6492268443107605,
+            "roi_bbox": [
+              224.50210571289062,
+              289.8414306640625,
+              456.8842468261719,
+              512.044189453125
+            ],
+            "decoded_results": [],
+            "decode_success": false
+          }
+        ],
+        "successful_attempts": 0,
+        "decode_time_ms": 129.8534870147705
+      },
+      "full_image_decodes": {
+        "pyzbar": [],
+        "pyzxing": []
+      },
+      "performance": {
+        "total_time_ms": 154.39462661743164,
+        "fps": 6.476909345283502
+      },
+      "success": true
+    },
+    {
+      "image_info": {
+        "path": "barcode_dataset/images/test\\snapshot_72_1766034789.jpg",
+        "size": [
+          1280,
+          720
+        ],
+        "channels": 3
+      },
+      "yolo_results": {
+        "detections": [
+          {
+            "id": 0,
+            "class": "barcode",
+            "class_id": 0,
+            "confidence": 0.5323950052261353,
+            "bbox": [
+              154.49954223632812,
+              322.608642578125,
+              484.2608337402344,
+              437.62506103515625
+            ],
+            "center": [
+              319.38018798828125,
+              380.1168518066406
+            ],
+            "area": 37927.9609375
+          }
+        ],
+        "count": 1,
+        "inference_time_ms": 25.143861770629883
+      },
+      "decode_results": {
+        "attempts": [
+          {
+            "detection_id": 0,
+            "yolo_class": "barcode",
+            "yolo_confidence": 0.5323950052261353,
+            "roi_bbox": [
+              154.49954223632812,
+              322.608642578125,
+              484.2608337402344,
+              437.62506103515625
+            ],
+            "decoded_results": [],
+            "decode_success": false
+          }
+        ],
+        "successful_attempts": 0,
+        "decode_time_ms": 75.5624771118164
+      },
+      "full_image_decodes": {
+        "pyzbar": [],
+        "pyzxing": []
+      },
+      "performance": {
+        "total_time_ms": 100.70633888244629,
+        "fps": 9.929861527061291
+      },
+      "success": true
+    },
+    {
+      "image_info": {
+        "path": "barcode_dataset/images/train\\snapshot_63_1765898355.jpg",
+        "size": [
+          450,
+          430
+        ],
+        "channels": 3
+      },
+      "yolo_results": {
+        "detections": [
+          {
+            "id": 0,
+            "class": "barcode",
+            "class_id": 0,
+            "confidence": 0.9039992690086365,
+            "bbox": [
+              55.281959533691406,
+              73.79292297363281,
+              389.5788879394531,
+              303.52117919921875
+            ],
+            "center": [
+              222.43042373657227,
+              188.65705108642578
+            ],
+            "area": 76797.453125
+          },
+          {
+            "id": 1,
+            "class": "barcode",
+            "class_id": 0,
+            "confidence": 0.7970218062400818,
+            "bbox": [
+              71.89642333984375,
+              80.04158020019531,
+              297.62078857421875,
+              302.4485778808594
+            ],
+            "center": [
+              184.75860595703125,
+              191.24507904052734
+            ],
+            "area": 50202.6796875
+          },
+          {
+            "id": 2,
+            "class": "barcode",
+            "class_id": 0,
+            "confidence": 0.4409712255001068,
+            "bbox": [
+              64.55841064453125,
+              99.9862060546875,
+              246.41453552246094,
+              300.7377014160156
+            ],
+            "center": [
+              155.4864730834961,
+              200.36195373535156
+            ],
+            "area": 36507.890625
+          },
+          {
+            "id": 3,
+            "class": "barcode",
+            "class_id": 0,
+            "confidence": 0.3791290521621704,
+            "bbox": [
+              145.87684631347656,
+              101.03675079345703,
+              390.36602783203125,
+              301.17486572265625
+            ],
+            "center": [
+              268.1214370727539,
+              201.10580825805664
+            ],
+            "area": 48931.60546875
+          }
+        ],
+        "count": 4,
+        "inference_time_ms": 31.30030632019043
+      },
+      "decode_results": {
+        "attempts": [
+          {
+            "detection_id": 0,
+            "yolo_class": "barcode",
+            "yolo_confidence": 0.9039992690086365,
+            "roi_bbox": [
+              55.281959533691406,
+              73.79292297363281,
+              389.5788879394531,
+              303.52117919921875
+            ],
+            "decoded_results": [
+              {
+                "decoder": "pyzbar",
+                "type": "CODE128",
+                "data": "1234567890128",
+                "quality": 165,
+                "bbox": [
+                  29,
+                  0,
+                  308,
+                  164
+                ],
+                "confidence": 1.0,
+                "original_bbox": [
+                  84.2819595336914,
+                  73.79292297363281,
+                  363.2819595336914,
+                  237.7929229736328
+                ]
+              }
+            ],
+            "decode_success": true
+          },
+          {
+            "detection_id": 1,
+            "yolo_class": "barcode",
+            "yolo_confidence": 0.7970218062400818,
+            "roi_bbox": [
+              71.89642333984375,
+              80.04158020019531,
+              297.62078857421875,
+              302.4485778808594
+            ],
+            "decoded_results": [],
+            "decode_success": false
+          },
+          {
+            "detection_id": 2,
+            "yolo_class": "barcode",
+            "yolo_confidence": 0.4409712255001068,
+            "roi_bbox": [
+              64.55841064453125,
+              99.9862060546875,
+              246.41453552246094,
+              300.7377014160156
+            ],
+            "decoded_results": [],
+            "decode_success": false
+          },
+          {
+            "detection_id": 3,
+            "yolo_class": "barcode",
+            "yolo_confidence": 0.3791290521621704,
+            "roi_bbox": [
+              145.87684631347656,
+              101.03675079345703,
+              390.36602783203125,
+              301.17486572265625
+            ],
+            "decoded_results": [],
+            "decode_success": false
+          }
+        ],
+        "successful_attempts": 1,
+        "decode_time_ms": 509.68408584594727
+      },
+      "full_image_decodes": {
+        "pyzbar": [
+          {
+            "decoder": "pyzbar",
+            "type": "CODE128",
+            "data": "1234567890128",
+            "quality": 178,
+            "bbox": [
+              84,
+              61,
+              363,
+              238
+            ],
+            "confidence": 1.0
+          }
+        ],
+        "pyzxing": []
+      },
+      "performance": {
+        "total_time_ms": 541.9845581054688,
+        "fps": 1.8450710173285096
+      },
+      "success": true
+    },
+    {
+      "image_info": {
+        "path": "barcode_dataset/images/train\\snapshot_74_1766034800.jpg",
+        "size": [
+          1280,
+          720
+        ],
+        "channels": 3
+      },
+      "yolo_results": {
+        "detections": [
+          {
+            "id": 0,
+            "class": "barcode",
+            "class_id": 0,
+            "confidence": 0.7609519362449646,
+            "bbox": [
+              270.54461669921875,
+              99.81063079833984,
+              559.9959106445312,
+              216.90396118164062
+            ],
+            "center": [
+              415.270263671875,
+              158.35729598999023
+            ],
+            "area": 33892.81640625
+          }
+        ],
+        "count": 1,
+        "inference_time_ms": 27.13942527770996
+      },
+      "decode_results": {
+        "attempts": [
+          {
+            "detection_id": 0,
+            "yolo_class": "barcode",
+            "yolo_confidence": 0.7609519362449646,
+            "roi_bbox": [
+              270.54461669921875,
+              99.81063079833984,
+              559.9959106445312,
+              216.90396118164062
+            ],
+            "decoded_results": [
+              {
+                "decoder": "pyzbar",
+                "type": "CODE128",
+                "data": "AB\"-a?c-1234",
+                "quality": 2,
+                "bbox": [
+                  25,
+                  31,
+                  27,
+                  51
+                ],
+                "confidence": 1.0,
+                "original_bbox": [
+                  295.54461669921875,
+                  130.81063079833984,
+                  297.54461669921875,
+                  150.81063079833984
+                ]
+              }
+            ],
+            "decode_success": true
+          }
+        ],
+        "successful_attempts": 1,
+        "decode_time_ms": 86.81201934814453
+      },
+      "full_image_decodes": {
+        "pyzbar": [
+          {
+            "decoder": "pyzbar",
+            "type": "CODE128",
+            "data": "AB\"-a?c-1234",
+            "quality": 1,
+            "bbox": [
+              295,
+              129,
+              295,
+              129
+            ],
+            "confidence": 1.0
+          }
+        ],
+        "pyzxing": []
+      },
+      "performance": {
+        "total_time_ms": 113.95144462585449,
+        "fps": 8.775667594942535
+      },
+      "success": true
+    },
+    {
+      "image_info": {
+        "path": "media/detection_frames\\snapshot_61_1765896953.jpg",
+        "size": [
+          1280,
+          720
+        ],
+        "channels": 3
+      },
+      "yolo_results": {
+        "detections": [],
+        "count": 0,
+        "inference_time_ms": 33.29730033874512
+      },
+      "decode_results": {
+        "attempts": [],
+        "successful_attempts": 0,
+        "decode_time_ms": 0.0
+      },
+      "full_image_decodes": {
+        "pyzbar": [],
+        "pyzxing": []
+      },
+      "performance": {
+        "total_time_ms": 33.29730033874512,
+        "fps": 30.03246478923664
+      },
+      "success": true
+    },
+    {
+      "image_info": {
+        "path": "media/detection_frames\\snapshot_57_1765878942.jpg",
+        "size": [
+          1280,
+          720
+        ],
+        "channels": 3
+      },
+      "yolo_results": {
+        "detections": [],
+        "count": 0,
+        "inference_time_ms": 32.28616714477539
+      },
+      "decode_results": {
+        "attempts": [],
+        "successful_attempts": 0,
+        "decode_time_ms": 0.0
+      },
+      "full_image_decodes": {
+        "pyzbar": [],
+        "pyzxing": []
+      },
+      "performance": {
+        "total_time_ms": 32.28616714477539,
+        "fps": 30.973016881064556
+      },
+      "success": true
+    }
+  ]
+}
