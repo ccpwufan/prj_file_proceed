@@ -1,4 +1,4 @@
-path: /app/barcode_dataset
+path: barcode_dataset
 train: images/train
 val: images/val
 test: images/test
